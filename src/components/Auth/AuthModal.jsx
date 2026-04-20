@@ -15,46 +15,58 @@ export default function AuthModal({ onClose }) {
     setError('')
     const { error } = await signInWithOtp(email)
     setLoading(false)
-    if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
-    }
+    if (error) setError(error.message)
+    else setSent(true)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-200">
-          <X size={20} />
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative fade-up">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+        >
+          <X size={18} />
         </button>
 
         {sent ? (
           <div className="text-center py-4">
-            <Mail className="mx-auto text-blue-400 mb-3" size={40} />
-            <h2 className="text-xl font-semibold text-slate-100 mb-2">Check your email</h2>
-            <p className="text-slate-400 text-sm">We sent a magic link to <strong className="text-slate-200">{email}</strong>. Click it to sign in.</p>
+            <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center mx-auto mb-4">
+              <Mail className="text-neutral-600 dark:text-neutral-400" size={22} />
+            </div>
+            <h2 className="font-[Bricolage_Grotesque] text-lg font-semibold text-neutral-950 dark:text-white mb-2">
+              Check your email
+            </h2>
+            <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
+              We sent a magic link to{' '}
+              <span className="font-medium text-neutral-800 dark:text-neutral-200">{email}</span>.
+              Click it to sign in.
+            </p>
           </div>
         ) : (
           <>
-            <h2 className="text-xl font-semibold text-slate-100 mb-1">Sign in to HouseDirect</h2>
-            <p className="text-slate-400 text-sm mb-6">We'll send a magic link — no password needed</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="font-[Bricolage_Grotesque] text-lg font-semibold text-neutral-950 dark:text-white mb-1">
+              Sign in
+            </h2>
+            <p className="text-neutral-500 dark:text-neutral-500 text-sm mb-5">
+              No password needed — we'll email you a magic link
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-3">
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full bg-slate-700 border border-slate-600 text-slate-100 placeholder-slate-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white"
               />
-              {error && <p className="text-red-400 text-xs">{error}</p>}
+              {error && <p className="text-red-500 text-xs">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full bg-neutral-950 dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-100 text-white dark:text-black font-medium py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading && <Loader2 size={16} className="animate-spin" />}
+                {loading && <Loader2 size={14} className="animate-spin" />}
                 Send magic link
               </button>
             </form>

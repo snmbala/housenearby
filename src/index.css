@@ -1,11 +1,28 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Base ───────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  transition-property: background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0f172a;
-  color: #f1f5f9;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-weight: 400;
+  background: #ffffff;
+  color: #0a0a0a;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background: #000000;
+  color: #ffffff;
 }
 
 #root {
@@ -13,28 +30,191 @@ body {
   min-height: 100vh;
 }
 
+/* ── Leaflet container ──────────────────────────────────── */
+
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #1e293b;
+  background: #ebebeb;
+  font-family: 'Outfit', sans-serif;
 }
 
-/* Dark leaflet tiles */
-.leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.8);
+html.dark .leaflet-container {
+  background: #111111;
 }
 
-/* Dark popups */
+/* Dark tile inversion — only in dark mode */
+html.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.88) saturate(0.75);
+}
+
+/* ── Popups ─────────────────────────────────────────────── */
+
 .leaflet-popup-content-wrapper {
-  background: #1e293b !important;
-  color: #f1f5f9 !important;
-  border: 1px solid #334155 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid #e5e5e5 !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
   border-radius: 12px !important;
+  padding: 0 !important;
 }
-.leaflet-popup-tip {
-  background: #1e293b !important;
+
+.leaflet-popup-content {
+  margin: 0 !important;
 }
+
+.leaflet-popup-tip-container {
+  display: none;
+}
+
 .leaflet-popup-close-button {
-  color: #94a3b8 !important;
+  color: #a3a3a3 !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+  top: 4px !important;
+  right: 4px !important;
+}
+
+html.dark .leaflet-popup-content-wrapper {
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #1f1f1f !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .leaflet-popup-close-button {
+  color: #525252 !important;
+}
+
+/* ── Zoom controls ──────────────────────────────────────── */
+
+.leaflet-bottom.leaflet-right {
+  bottom: 12px !important;
+  right: 12px !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid #e5e5e5 !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-control-zoom a {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border-bottom: 1px solid #e5e5e5 !important;
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  font-size: 17px !important;
+  font-weight: 300 !important;
+  display: block;
+  transition: background 0.1s;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f5f5f5 !important;
+}
+
+html.dark .leaflet-control-zoom {
+  border-color: #1f1f1f !important;
+}
+
+html.dark .leaflet-control-zoom a {
+  background: #0f0f0f !important;
+  color: #e5e5e5 !important;
+  border-bottom-color: #1f1f1f !important;
+}
+
+html.dark .leaflet-control-zoom a:hover {
+  background: #1a1a1a !important;
+}
+
+/* ── Locate button ──────────────────────────────────────── */
+
+.locate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  transition: background 0.1s;
+}
+
+.locate-btn:hover {
+  background: #f5f5f5;
+}
+
+html.dark .locate-btn {
+  background: #0f0f0f;
+  color: #e5e5e5;
+  border-color: #1f1f1f;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .locate-btn:hover {
+  background: #1a1a1a;
+}
+
+/* ── Price pin markers ──────────────────────────────────── */
+
+.price-pin {
+  background: #0a0a0a;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transform: translateX(-50%);
+  display: inline-block;
+}
+
+html.dark .price-pin {
+  background: #ffffff;
+  color: #0a0a0a;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* ── User location pulse ────────────────────────────────── */
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* ── Search dropdown ────────────────────────────────────── */
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.search-dropdown {
+  animation: dropdown-in 0.15s ease;
+}
+
+/* ── Smooth page transitions ────────────────────────────── */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fade-up 0.2s ease forwards;
 }

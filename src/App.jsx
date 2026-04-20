@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
+import { ThemeProvider } from './hooks/useTheme'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import PostListing from './pages/PostListing'
@@ -8,20 +9,22 @@ import MyListings from './pages/MyListings'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="flex flex-col h-screen">
-          <Navbar />
-          <div className="flex-1 overflow-hidden">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/post" element={<PostListing />} />
-              <Route path="/listing/:id" element={<ListingDetail />} />
-              <Route path="/my-listings" element={<MyListings />} />
-            </Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="flex flex-col h-screen bg-white dark:bg-black">
+            <Navbar />
+            <div className="flex-1 overflow-hidden">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/post" element={<div className="h-full overflow-y-auto"><PostListing /></div>} />
+                <Route path="/listing/:id" element={<div className="h-full overflow-y-auto"><ListingDetail /></div>} />
+                <Route path="/my-listings" element={<div className="h-full overflow-y-auto"><MyListings /></div>} />
+              </Routes>
+            </div>
           </div>
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
