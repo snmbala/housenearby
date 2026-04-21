@@ -266,3 +266,27 @@ html.dark .img-strip::-webkit-scrollbar-thumb { background: #404040; }
 .fade-up {
   animation: fade-up 0.2s ease forwards;
 }
+
+/* ── Mobile bottom sheet slide-up ──────────────────────── */
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ── Safe area padding (iOS home indicator) ─────────────── */
+
+.pb-safe-or-2 {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+/* ── Mobile: no tap highlight ───────────────────────────── */
+
+@media (max-width: 767px) {
+  * { -webkit-tap-highlight-color: transparent; }
+  input, button, a { touch-action: manipulation; }
+}
