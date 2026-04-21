@@ -9,7 +9,7 @@ import { useFilters } from '../hooks/useFilters.jsx'
 import { useKeyboard } from '../hooks/useKeyboard.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import SEOMeta from '../components/SEOMeta.jsx'
-import { Search, SlidersHorizontal, X, MapPin, BedDouble, ArrowLeft, MessageSquare, User, PlusCircle } from 'lucide-react'
+import { Search, SlidersHorizontal, X, MapPin, BedDouble, ArrowLeft, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
@@ -156,6 +156,164 @@ function MobileCard({ listing, distKm, onTap }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
+
+function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea, activeFilterCount }) {
+  const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'location'
+  const barRef = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => { if (barRef.current && !barRef.current.contains(e.target)) setOpenPanel(null) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const toggle = (panel) => setOpenPanel(p => p === panel ? null : panel)
+
+  return (
+    <div ref={barRef} className="shrink-0 bg-white dark:bg-black border-b border-neutral-200 dark:border-neutral-900 px-4 py-2.5 flex items-center gap-2 z-[999] relative">
+
+      {/* Search input */}
+      <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 flex-1 max-w-sm focus-within:border-neutral-950 dark:focus-within:border-white transition-colors">
+        <Search size={14} className="text-neutral-400 dark:text-neutral-600 shrink-0" />
+        <input
+          type="text"
+          placeholder="Search city, area or title…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-transparent text-sm text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none min-w-0"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 shrink-0">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* Property type pill */}
+      <div className="relative">
+        <button
+          onClick={() => toggle('propType')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            propType !== 'All'
+              ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
+          }`}
+        >
+          {propType === 'All' ? 'Property type' : propType}
+          <ChevronDown size={13} className={openPanel === 'propType' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        </button>
+        {openPanel === 'propType' && (
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-3 min-w-[180px] search-dropdown">
+            <div className="flex flex-col gap-1">
+              {PROPERTY_TYPES.map(t => (
+                <button
+                  key={t}
+                  onClick={() => { setPropType(t); setOpenPanel(null) }}
+                  className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    propType === t
+                      ? 'bg-neutral-950 dark:bg-white text-white dark:text-black font-medium'
+                      : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Price pill */}
+      <div className="relative">
+        <button
+          onClick={() => toggle('price')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            maxRent !== ''
+              ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
+          }`}
+        >
+          {maxRent !== '' ? `Under ₹${Number(maxRent).toLocaleString('en-IN')}` : 'Price'}
+          <ChevronDown size={13} className={openPanel === 'price' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        </button>
+        {openPanel === 'price' && (
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-4 min-w-[220px] search-dropdown">
+            <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider mb-2.5">Max budget</p>
+            <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-neutral-950 dark:focus-within:ring-white">
+              <span className="text-sm text-neutral-400 dark:text-neutral-600">₹</span>
+              <input
+                type="number"
+                placeholder="e.g. 25,000"
+                value={maxRent}
+                onChange={(e) => setMaxRent(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-neutral-950 dark:text-white placeholder-neutral-400 focus:outline-none"
+              />
+              {maxRent && <button onClick={() => setMaxRent('')}><X size={13} className="text-neutral-400" /></button>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Location / Nearby pill */}
+      <div className="relative">
+        <button
+          onClick={() => toggle('location')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            nearbyMode || locationArea
+              ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
+          }`}
+        >
+          {locationArea ? locationArea : nearbyMode ? `Nearby · ${radiusKm} km` : 'Location'}
+          <ChevronDown size={13} className={openPanel === 'location' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        </button>
+        {openPanel === 'location' && (
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-4 min-w-[240px] search-dropdown space-y-3">
+            <button
+              onClick={() => { setNearbyMode(true); setLocationArea('') }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${nearbyMode ? 'bg-neutral-950 dark:bg-white text-white dark:text-black' : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}`}
+            >
+              Nearby
+            </button>
+            {nearbyMode && (
+              <div>
+                <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                  <span>Radius</span>
+                  <span className="font-semibold text-neutral-950 dark:text-white">{radiusKm} km</span>
+                </div>
+                <input
+                  type="range" min="1" max="25" value={radiusKm}
+                  onChange={(e) => setRadiusKm(Number(e.target.value))}
+                  className="w-full accent-neutral-950 dark:accent-white"
+                />
+              </div>
+            )}
+            <input
+              type="text"
+              placeholder="Search area (e.g. Whitefield)"
+              value={locationArea}
+              onChange={(e) => { setLocationArea(e.target.value); setNearbyMode(!e.target.value.trim()) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') setOpenPanel(null) }}
+              className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Clear all */}
+      {activeFilterCount > 0 && (
+        <button
+          onClick={() => { setPropType('All'); setMaxRent(''); setNearbyMode(true); setRadiusKm(6); setLocationArea(''); setSearch('') }}
+          className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors px-1"
+        >
+          Clear all
+        </button>
+      )}
     </div>
   )
 }
@@ -313,11 +471,26 @@ export default function Home() {
           title={city !== 'All Cities' ? `Rentals in ${city}` : 'Find Rentals Near You'}
           description={`Browse ${filtered.length} rental properties${city !== 'All Cities' ? ` in ${city}` : ' near you'} — apartments, houses, PGs and villas. No broker fees.`}
         />
+
+        {/* ── Filter bar ── */}
+        <DesktopFilterBar
+          search={search} setSearch={setSearch}
+          propType={propType} setPropType={setPropType}
+          maxRent={maxRent} setMaxRent={setMaxRent}
+          nearbyMode={nearbyMode} setNearbyMode={setNearbyMode}
+          radiusKm={radiusKm} setRadiusKm={setRadiusKm}
+          locationArea={locationArea} setLocationArea={setLocationArea}
+          activeFilterCount={activeFilterCount}
+        />
+
         <div className="flex-1 overflow-hidden flex">
-          <div className="flex-1">
+          {/* Map */}
+          <div className="flex-1 min-w-0">
             <ListingsMap listings={filtered} center={mapCenter} zoom={mapZoom} userCoords={userCoords} onSelect={handleMapSelect} hoveredId={hoveredId} />
           </div>
-          <div className="w-[540px] shrink-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-900 flex flex-col overflow-hidden">
+
+          {/* Right panel */}
+          <div className="w-[600px] shrink-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-900 flex flex-col overflow-hidden">
             {selectedListing ? (
               <ListingDetailPanel
                 key={selectedListing.id}
@@ -332,18 +505,18 @@ export default function Home() {
               />
             ) : (
               <div className="overflow-y-auto flex-1">
-                <div className="px-3 pt-3 pb-1">
-                  <p className="text-xs font-semibold text-neutral-950 dark:text-white">
+                <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-neutral-950 dark:text-white">
                     {loading ? 'Loading…' : resultLabel}
                   </p>
                 </div>
-                <div className="p-3 flex flex-col gap-2.5">
+                <div className="px-4 pb-4 grid grid-cols-2 gap-3">
                   {loading ? (
                     Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="bg-neutral-100 dark:bg-neutral-900 rounded-xl h-56 animate-pulse border border-neutral-200 dark:border-neutral-800" />
+                      <div key={i} className="bg-neutral-100 dark:bg-neutral-900 rounded-xl h-64 animate-pulse border border-neutral-200 dark:border-neutral-800" />
                     ))
                   ) : filtered.length === 0 ? (
-                    <div className="text-center py-16">
+                    <div className="col-span-2 text-center py-16">
                       <p className="text-3xl mb-3">🏠</p>
                       <p className="font-medium text-neutral-600 dark:text-neutral-400 text-sm">No rentals found</p>
                       <p className="text-xs mt-1 text-neutral-400 dark:text-neutral-600">Try adjusting your filters</p>

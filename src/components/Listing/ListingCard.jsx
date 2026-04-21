@@ -1,13 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, BedDouble } from 'lucide-react'
+import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const BHK_LABELS = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
-
-const FURNISHING_LABELS = {
-  furnished: 'Furnished',
-  semi: 'Semi',
-  unfurnished: 'Unfurnished',
-}
+const FURNISHING_LABELS = { furnished: 'Furnished', semi: 'Semi', unfurnished: 'Unfurnished' }
 
 function fmtDist(km) {
   if (km == null) return null
@@ -16,91 +12,105 @@ function fmtDist(km) {
 
 export default function ListingCard({ listing, distKm, onSelect, onHover }) {
   const navigate = useNavigate()
-  const images = listing.images?.slice(0, 3) ?? []
+  const [imgIdx, setImgIdx] = useState(0)
+  const images = listing.images ?? []
   const handleClick = () => onSelect ? onSelect(listing) : navigate(`/listing/${listing.id}`)
+
+  const prev = (e) => { e.stopPropagation(); setImgIdx(i => Math.max(0, i - 1)) }
+  const next = (e) => { e.stopPropagation(); setImgIdx(i => Math.min(images.length - 1, i + 1)) }
 
   return (
     <div
       onClick={handleClick}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(null)}
-      className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors cursor-pointer overflow-hidden flex h-32"
+      className="group bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:shadow-md dark:hover:shadow-black/40 transition-shadow cursor-pointer overflow-hidden"
     >
-      {/* Image grid */}
-      <div className="shrink-0 w-56 h-32 flex gap-0.5 overflow-hidden rounded-l-xl">
-        {images.length === 0 && (
-          <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-neutral-300 dark:text-neutral-700 text-2xl">🏠</div>
-        )}
-        {images.length === 1 && (
-          <div className="relative w-full h-full">
-            <img src={images[0]} alt="" className="w-full h-full object-cover" />
-            <span className="absolute top-1.5 left-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">
-              {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
-            </span>
-          </div>
-        )}
-        {images.length === 2 && (
+      {/* Image slider */}
+      <div className="relative h-48 bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
+        {images.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center text-4xl select-none">🏠</div>
+        ) : (
           <>
-            <div className="relative w-1/2 h-full">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
-              <span className="absolute top-1.5 left-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">
+            <img
+              key={imgIdx}
+              src={images[imgIdx]}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+
+            {/* Furnishing badge */}
+            {listing.furnishing && (
+              <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">
                 {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
               </span>
-            </div>
-            <div className="w-1/2 h-full">
-              <img src={images[1]} alt="" className="w-full h-full object-cover" />
-            </div>
-          </>
-        )}
-        {images.length >= 3 && (
-          <>
-            <div className="relative w-3/5 h-full">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
-              <span className="absolute top-1.5 left-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">
-                {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
+            )}
+
+            {/* Distance badge */}
+            {fmtDist(distKm) && (
+              <span className="absolute top-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">
+                {fmtDist(distKm)}
               </span>
-            </div>
-            <div className="flex flex-col gap-0.5 w-2/5 h-full">
-              <img src={images[1]} alt="" className="w-full h-1/2 object-cover" />
-              <div className="relative w-full h-1/2">
-                <img src={images[2]} alt="" className="w-full h-full object-cover" />
-                {listing.images.length > 3 && (
-                  <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                    <span className="text-white text-xs font-semibold">+{listing.images.length - 3}</span>
-                  </div>
-                )}
+            )}
+
+            {/* Prev / Next arrows — show on hover */}
+            {imgIdx > 0 && (
+              <button
+                onClick={prev}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white dark:bg-neutral-900 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft size={16} className="text-neutral-800 dark:text-white" />
+              </button>
+            )}
+            {imgIdx < images.length - 1 && (
+              <button
+                onClick={next}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white dark:bg-neutral-900 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronRight size={16} className="text-neutral-800 dark:text-white" />
+              </button>
+            )}
+
+            {/* Dot indicators */}
+            {images.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
+                {images.slice(0, 8).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); setImgIdx(i) }}
+                    className={`rounded-full transition-all duration-200 ${
+                      i === imgIdx
+                        ? 'w-3 h-1.5 bg-white'
+                        : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/90'
+                    }`}
+                  />
+                ))}
               </div>
-            </div>
+            )}
           </>
         )}
       </div>
 
-      {/* Details */}
-      <div className="flex-1 min-w-0 p-3 flex flex-col justify-between">
-        <div>
-          <p className="font-[Bricolage_Grotesque] font-semibold text-neutral-950 dark:text-white text-sm leading-snug line-clamp-2">{listing.title}</p>
-          <div className="flex items-center gap-1 text-neutral-400 dark:text-neutral-600 text-xs mt-1 min-w-0">
-            <MapPin size={10} className="shrink-0" />
-            <span className="truncate">{listing.city}, {listing.state}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
-          <span className="font-[Bricolage_Grotesque] font-bold text-neutral-950 dark:text-white text-sm tracking-tight">
+      {/* Info */}
+      <div className="p-3.5">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <p className="font-[Bricolage_Grotesque] font-bold text-neutral-950 dark:text-white text-base leading-tight">
             ₹{Number(listing.rent_amount).toLocaleString('en-IN')}
             <span className="font-normal text-neutral-400 dark:text-neutral-600 text-xs">/mo</span>
+          </p>
+          <span className="text-xs text-neutral-400 dark:text-neutral-600 bg-neutral-100 dark:bg-neutral-900 px-2 py-0.5 rounded-full shrink-0">
+            {listing.property_type ?? 'Rental'}
           </span>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-neutral-400 dark:text-neutral-600 text-xs">
-              <BedDouble size={11} />
-              <span>{BHK_LABELS[listing.bhk] ?? `${listing.bhk} BHK`}</span>
-            </div>
-            {fmtDist(distKm) && (
-              <span className="text-[10px] font-medium text-neutral-400 dark:text-neutral-500">
-                {fmtDist(distKm)}
-              </span>
-            )}
-          </div>
+        </div>
+
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1.5">
+          {BHK_LABELS[listing.bhk] ?? `${listing.bhk} BHK`}
+          {listing.furnishing && <span className="text-neutral-400 dark:text-neutral-600"> · {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}</span>}
+        </p>
+
+        <div className="flex items-center gap-1 text-neutral-400 dark:text-neutral-600 text-xs">
+          <MapPin size={10} className="shrink-0" />
+          <span className="truncate">{listing.title}</span>
         </div>
       </div>
     </div>
