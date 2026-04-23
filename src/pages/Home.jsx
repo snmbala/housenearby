@@ -281,18 +281,24 @@ export default function Home() {
 
   useEffect(() => { fetchListings() }, [fetchListings])
 
-  const filtered = useMemo(() =>
-    listings
+  const filtered = useMemo(() => {
+    const searchLower = search.toLowerCase()
+    const searchNorm = (CITY_ALIASES[searchLower] ?? search).toLowerCase()
+    return listings
       .filter(l => {
-        const matchSearch = search === '' || [l.title, l.city, l.address].some(f => f?.toLowerCase().includes(search.toLowerCase()))
-        const matchRadius = !nearbyMode || !userCoords || haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) <= radiusKm
+        const fields = [l.title, l.city, l.address]
+        const matchSearch = search === '' || fields.some(f =>
+          f?.toLowerCase().includes(searchLower) ||
+          (searchNorm !== searchLower && f?.toLowerCase().includes(searchNorm))
+        )
+        // Don't apply radius filter when text search is active — user is explicitly searching by name
+        const matchRadius = search !== '' ? true : (!nearbyMode || !userCoords || haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) <= radiusKm)
         const matchArea = !locationArea || [l.city, l.address].some(f => f?.toLowerCase().includes(locationArea.toLowerCase()))
         return matchSearch && matchRadius && matchArea
       })
       .map(l => ({ ...l, _distKm: userCoords ? haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) : null }))
-      .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm),
-    [listings, search, nearbyMode, userCoords, radiusKm, locationArea]
-  )
+      .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm)
+  }, [listings, search, nearbyMode, userCoords, radiusKm, locationArea])
 
   const defaultCenter = cityManuallySelected && city !== 'All Cities'
     ? getCityCenter(city) : userCoords ? [userCoords.lat, userCoords.lng] : [20.5937, 78.9629]

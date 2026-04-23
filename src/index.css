@@ -249,6 +249,55 @@ html.dark .map-card-tip {
   animation: dropdown-in 0.15s ease;
 }
 
+/* ── Google Places pac-container ────────────────────────── */
+
+.pac-container {
+  z-index: 9999 !important;
+  border: 1px solid #e5e5e5 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  margin-top: 4px !important;
+  font-family: 'Outfit', sans-serif !important;
+  overflow: hidden;
+}
+
+.pac-item {
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  cursor: pointer;
+  border-top: 1px solid #f5f5f5 !important;
+  color: #0a0a0a !important;
+}
+
+.pac-item:first-child { border-top: none !important; }
+.pac-item:hover, .pac-item-selected { background: #f5f5f5 !important; }
+
+.pac-item-query {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #0a0a0a !important;
+}
+
+.pac-matched { font-weight: 700 !important; }
+
+.pac-icon { display: none !important; }
+
+html.dark .pac-container {
+  background: #111111 !important;
+  border-color: #1f1f1f !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .pac-item {
+  border-top-color: #1f1f1f !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .pac-item:hover,
+html.dark .pac-item-selected { background: #1a1a1a !important; }
+
+html.dark .pac-item-query { color: #ffffff !important; }
+
 /* ── Thin horizontal scrollbar for image strips ─────────── */
 
 .img-strip::-webkit-scrollbar { height: 3px; }
