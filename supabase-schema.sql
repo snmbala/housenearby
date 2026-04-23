@@ -24,6 +24,7 @@ create table if not exists listings (
   contact_name text not null,
   contact_phone text not null,
   contact_email text,
+  amenities text[] default '{}',
   images text[] default '{}',
   is_active boolean default true,
   created_at timestamptz default now(),

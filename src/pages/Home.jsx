@@ -8,12 +8,13 @@ import { useCity, CITIES } from '../hooks/useCity.jsx'
 import { useFilters } from '../hooks/useFilters.jsx'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import SEOMeta from '../components/SEOMeta.jsx'
-import { Search, SlidersHorizontal, X, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, X, MessageSquare, User, PlusCircle, ChevronDown, Check } from 'lucide-react'
 import PlacesAutocomplete from '../components/Places/PlacesAutocomplete.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
 import { CITY_ALIASES, getCityCenter } from '../lib/cities'
+import { BHK_LABELS, BHK_OPTIONS, AMENITIES } from '../lib/listing'
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371
@@ -52,9 +53,10 @@ const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
 
 function DesktopFilterBar({
   search, setSearch, propType, setPropType, maxRent, setMaxRent,
+  bhk, setBhk, amenities, setAmenities,
   setUserCoords, activeFilterCount, setMapOverride,
 }) {
-  const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'location'
+  const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'bhk' | 'amenities'
   const barRef = useRef(null)
 
   useEffect(() => {
@@ -155,9 +157,97 @@ function DesktopFilterBar({
         )}
       </div>
 
+      {/* BHK pill */}
+      <div className="relative">
+        <button
+          onClick={() => toggle('bhk')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            bhk.length > 0
+              ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
+          }`}
+        >
+          {bhk.length === 0 ? 'BHK' : bhk.length === 1 ? BHK_LABELS[bhk[0]] : `${bhk.length} BHKs`}
+          <ChevronDown size={13} className={openPanel === 'bhk' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        </button>
+        {openPanel === 'bhk' && (
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-3 min-w-[200px] search-dropdown">
+            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2">Bedrooms</p>
+            <div className="flex flex-wrap gap-1.5">
+              {BHK_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setBhk(prev => prev.includes(opt.value) ? prev.filter(b => b !== opt.value) : [...prev, opt.value])}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    bhk.includes(opt.value)
+                      ? 'bg-neutral-950 dark:bg-white text-white dark:text-black'
+                      : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-neutral-200 dark:border-neutral-800'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {bhk.length > 0 && (
+              <button onClick={() => setBhk([])} className="mt-2.5 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300">
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Amenities pill */}
+      <div className="relative">
+        <button
+          onClick={() => toggle('amenities')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            amenities.length > 0
+              ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
+              : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
+          }`}
+        >
+          {amenities.length === 0 ? 'Amenities'
+            : amenities.length === 1 ? (AMENITIES.find(a => a.value === amenities[0])?.label ?? 'Amenity')
+            : `${amenities.length} amenities`}
+          <ChevronDown size={13} className={openPanel === 'amenities' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        </button>
+        {openPanel === 'amenities' && (
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-3 min-w-[280px] search-dropdown">
+            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2">Must have</p>
+            <div className="grid grid-cols-2 gap-1">
+              {AMENITIES.map(a => {
+                const active = amenities.includes(a.value)
+                return (
+                  <button
+                    key={a.value}
+                    onClick={() => setAmenities(prev => active ? prev.filter(v => v !== a.value) : [...prev, a.value])}
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                      active
+                        ? 'bg-neutral-950 dark:bg-white text-white dark:text-black'
+                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                    }`}
+                  >
+                    {active
+                      ? <Check size={11} className="shrink-0" />
+                      : <span className="w-3 h-3 rounded border border-neutral-300 dark:border-neutral-700 shrink-0" />}
+                    {a.label}
+                  </button>
+                )
+              })}
+            </div>
+            {amenities.length > 0 && (
+              <button onClick={() => setAmenities([])} className="mt-2.5 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300">
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {activeFilterCount > 0 && (
         <button
-          onClick={() => { setPropType('All'); setMaxRent(''); setSearch('') }}
+          onClick={() => { setPropType('All'); setMaxRent(''); setBhk([]); setAmenities([]); setSearch('') }}
           className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors px-1"
         >
           Clear all
@@ -172,6 +262,7 @@ export default function Home() {
   const { city, setCity, cityManuallySelected } = useCity()
   const {
     search, setSearch, propType, setPropType, maxRent, setMaxRent,
+    bhk, setBhk, amenities, setAmenities,
     userCoords, setUserCoords,
   } = useFilters()
 
@@ -212,6 +303,13 @@ export default function Home() {
     if (city !== 'All Cities') q = q.eq('city', city)
     if (propType !== 'All') q = q.eq('property_type', propType.toLowerCase())
     if (maxRent) q = q.lte('rent_amount', parseInt(maxRent))
+    if (bhk.length > 0) {
+      const specific = bhk.filter(b => b < 4)
+      const fourPlus = bhk.includes(4)
+      if (specific.length > 0 && fourPlus) q = q.or(`bhk.in.(${specific.join(',')}),bhk.gte.4`)
+      else if (fourPlus) q = q.gte('bhk', 4)
+      else q = q.in('bhk', specific)
+    }
     const { data, error } = await q
     if (error) {
       setFetchError('Failed to load listings. Please try again.')
@@ -219,7 +317,7 @@ export default function Home() {
       setListings(data ?? [])
     }
     setLoading(false)
-  }, [city, propType, maxRent])
+  }, [city, propType, maxRent, bhk.join(',')])
 
   useEffect(() => { fetchListings() }, [fetchListings])
 
@@ -228,16 +326,21 @@ export default function Home() {
     const searchNorm = (CITY_ALIASES[searchLower] ?? search).toLowerCase()
     return listings
       .filter(l => {
-        if (search === '') return true
-        const fields = [l.title, l.city, l.address]
-        return fields.some(f =>
-          f?.toLowerCase().includes(searchLower) ||
-          (searchNorm !== searchLower && f?.toLowerCase().includes(searchNorm))
-        )
+        if (search !== '') {
+          const fields = [l.title, l.city, l.address]
+          if (!fields.some(f =>
+            f?.toLowerCase().includes(searchLower) ||
+            (searchNorm !== searchLower && f?.toLowerCase().includes(searchNorm))
+          )) return false
+        }
+        if (amenities.length > 0) {
+          if (!amenities.every(a => l.amenities?.includes(a))) return false
+        }
+        return true
       })
       .map(l => ({ ...l, _distKm: userCoords ? haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) : null }))
       .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm)
-  }, [listings, search, userCoords])
+  }, [listings, search, userCoords, amenities])
 
   // Desktop right panel shows only what's currently visible in the map viewport
   const visibleListings = useMemo(() => {
@@ -311,7 +414,7 @@ export default function Home() {
     }
   }, [isMobile, allFiltered, scrollToCard])
 
-  const activeFilterCount = [propType !== 'All', maxRent !== ''].filter(Boolean).length
+  const activeFilterCount = [propType !== 'All', maxRent !== '', bhk.length > 0, amenities.length > 0].filter(Boolean).length
   const resultLabel = mapBounds
     ? `${visibleListings.length} in view`
     : `${allFiltered.length} rentals`
@@ -329,6 +432,8 @@ export default function Home() {
           search={search} setSearch={setSearch}
           propType={propType} setPropType={setPropType}
           maxRent={maxRent} setMaxRent={setMaxRent}
+          bhk={bhk} setBhk={setBhk}
+          amenities={amenities} setAmenities={setAmenities}
           setUserCoords={setUserCoords}
           activeFilterCount={activeFilterCount}
           setMapOverride={setMapOverride}
