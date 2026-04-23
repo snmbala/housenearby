@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { MapContainer, Marker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet.gridlayer.googlemutant'
+import GoogleMutant from 'leaflet.gridlayer.googlemutant/src/Leaflet.GoogleMutant.mjs'
 import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
@@ -59,7 +59,7 @@ function GoogleMutantLayer() {
 
   useEffect(() => {
     if (!loaded) return
-    const layer = L.gridLayer.googleMutant({ type: 'roadmap', maxZoom: 20 })
+    const layer = new GoogleMutant({ type: 'roadmap', maxZoom: 20 })
     layer.addTo(map)
     return () => map.removeLayer(layer)
   }, [loaded, map])
