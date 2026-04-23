@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const BHK_LABELS = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
@@ -10,11 +9,10 @@ function fmtDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
-export default function ListingCard({ listing, distKm, onSelect, onHover }) {
-  const navigate = useNavigate()
+export default function ListingCard({ listing, distKm, onHover }) {
   const [imgIdx, setImgIdx] = useState(0)
   const images = listing.images ?? []
-  const handleClick = () => onSelect ? onSelect(listing) : navigate(`/listing/${listing.id}`)
+  const handleClick = () => window.open(`/listing/${listing.id}`, '_blank')
 
   const prev = (e) => { e.stopPropagation(); setImgIdx(i => Math.max(0, i - 1)) }
   const next = (e) => { e.stopPropagation(); setImgIdx(i => Math.min(images.length - 1, i + 1)) }

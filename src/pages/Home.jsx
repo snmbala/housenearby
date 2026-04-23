@@ -2,14 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ListingsMap from '../components/Map/ListingsMap'
 import ListingCard from '../components/Listing/ListingCard'
-import ListingDetailPanel from '../components/Listing/ListingDetailPanel'
 import MobileFilterSheet from '../components/Mobile/MobileFilterSheet'
 import { useCity } from '../hooks/useCity.jsx'
 import { useFilters } from '../hooks/useFilters.jsx'
-import { useKeyboard } from '../hooks/useKeyboard.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import SEOMeta from '../components/SEOMeta.jsx'
-import { Search, SlidersHorizontal, X, MapPin, BedDouble, ArrowLeft, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, X, MapPin, BedDouble, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
+import PlacesAutocomplete from '../components/Places/PlacesAutocomplete.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
@@ -162,7 +161,7 @@ function MobileCard({ listing, distKm, onTap }) {
 
 const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
 
-function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea, activeFilterCount }) {
+function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea, setUserCoords, activeFilterCount }) {
   const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'location'
   const barRef = useRef(null)
 
@@ -293,12 +292,16 @@ function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, s
                 />
               </div>
             )}
-            <input
-              type="text"
+            <PlacesAutocomplete
+              externalValue={locationArea}
+              onChange={(v) => { setLocationArea(v); setNearbyMode(!v.trim()) }}
+              onPlaceSelect={({ lat, lng, name }) => {
+                setUserCoords({ lat, lng })
+                setNearbyMode(true)
+                setLocationArea(name || '')
+                setOpenPanel(null)
+              }}
               placeholder="Search area (e.g. Whitefield)"
-              value={locationArea}
-              onChange={(e) => { setLocationArea(e.target.value); setNearbyMode(!e.target.value.trim()) }}
-              onKeyDown={(e) => { if (e.key === 'Enter') setOpenPanel(null) }}
               className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white"
             />
           </div>
@@ -325,13 +328,13 @@ export default function Home() {
 
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedListing, setSelectedListing] = useState(null)
   const [mapOverride, setMapOverride] = useState(null)
   const [hoveredId, setHoveredId] = useState(null)
 
   const navigate = useNavigate()
   const { user } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
+  const openListing = (listing) => window.open(`/listing/${listing.id}`, '_blank')
 
   // Mobile carousel state
   const [activeCardIdx, setActiveCardIdx] = useState(0)
@@ -377,8 +380,6 @@ export default function Home() {
   const mapCenter = mapOverride ? mapOverride.center : defaultCenter
   const mapZoom = mapOverride ? mapOverride.zoom : defaultZoom
 
-  const selectedIndex = selectedListing ? filtered.findIndex(l => l.id === selectedListing.id) : -1
-
   // Pan map when active card changes (mobile)
   useEffect(() => {
     if (!isMobile || !filtered.length) return
@@ -418,43 +419,15 @@ export default function Home() {
     if (clamped !== activeCardIdx) setActiveCardIdx(clamped)
   }, [activeCardIdx, filtered.length])
 
-  // Map marker tap → scroll carousel to that listing (mobile) or open detail (desktop)
+  // Map marker tap → scroll carousel to that listing (mobile) or open in new tab (desktop)
   const handleMapSelect = useCallback((listing) => {
     if (isMobile) {
       const idx = filtered.findIndex(l => l.id === listing.id)
       if (idx >= 0) scrollToCard(idx)
     } else {
-      setSelectedListing(listing)
-      setMapOverride({ center: [listing.lat, listing.lng], zoom: 17 })
+      openListing(listing)
     }
   }, [isMobile, filtered, scrollToCard])
-
-  const handleCloseDetail = () => {
-    setSelectedListing(null)
-    setMapOverride(null)
-  }
-
-  const handleNext = () => {
-    if (selectedIndex < filtered.length - 1) {
-      const next = filtered[selectedIndex + 1]
-      setSelectedListing(next)
-      setMapOverride({ center: [next.lat, next.lng], zoom: 17 })
-    }
-  }
-
-  const handlePrev = () => {
-    if (selectedIndex > 0) {
-      const prev = filtered[selectedIndex - 1]
-      setSelectedListing(prev)
-      setMapOverride({ center: [prev.lat, prev.lng], zoom: 17 })
-    }
-  }
-
-  useKeyboard({
-    Escape:     () => selectedListing && handleCloseDetail(),
-    ArrowRight: () => selectedListing && handleNext(),
-    ArrowLeft:  () => selectedListing && handlePrev(),
-  })
 
   const activeFilterCount = [propType !== 'All', maxRent !== '', locationArea !== ''].filter(Boolean).length
   const resultLabel = locationArea
@@ -480,6 +453,7 @@ export default function Home() {
           nearbyMode={nearbyMode} setNearbyMode={setNearbyMode}
           radiusKm={radiusKm} setRadiusKm={setRadiusKm}
           locationArea={locationArea} setLocationArea={setLocationArea}
+          setUserCoords={setUserCoords}
           activeFilterCount={activeFilterCount}
         />
 
@@ -491,44 +465,30 @@ export default function Home() {
 
           {/* Right panel */}
           <div className="w-[600px] shrink-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-900 flex flex-col overflow-hidden">
-            {selectedListing ? (
-              <ListingDetailPanel
-                key={selectedListing.id}
-                listing={selectedListing}
-                onClose={handleCloseDetail}
-                onNext={handleNext}
-                onPrev={handlePrev}
-                hasNext={selectedIndex < filtered.length - 1}
-                hasPrev={selectedIndex > 0}
-                index={selectedIndex}
-                total={filtered.length}
-              />
-            ) : (
-              <div className="overflow-y-auto flex-1">
-                <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-neutral-950 dark:text-white">
-                    {loading ? 'Loading…' : resultLabel}
-                  </p>
-                </div>
-                <div className="px-4 pb-4 grid grid-cols-2 gap-3">
-                  {loading ? (
-                    Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="bg-neutral-100 dark:bg-neutral-900 rounded-xl h-64 animate-pulse border border-neutral-200 dark:border-neutral-800" />
-                    ))
-                  ) : filtered.length === 0 ? (
-                    <div className="col-span-2 text-center py-16">
-                      <p className="text-3xl mb-3">🏠</p>
-                      <p className="font-medium text-neutral-600 dark:text-neutral-400 text-sm">No rentals found</p>
-                      <p className="text-xs mt-1 text-neutral-400 dark:text-neutral-600">Try adjusting your filters</p>
-                    </div>
-                  ) : (
-                    filtered.map(listing => (
-                      <ListingCard key={listing.id} listing={listing} distKm={listing._distKm} onSelect={handleMapSelect} onHover={setHoveredId} />
-                    ))
-                  )}
-                </div>
+            <div className="overflow-y-auto flex-1">
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-sm font-semibold text-neutral-950 dark:text-white">
+                  {loading ? 'Loading…' : resultLabel}
+                </p>
               </div>
-            )}
+              <div className="px-4 pb-4 grid grid-cols-2 gap-3">
+                {loading ? (
+                  Array(4).fill(0).map((_, i) => (
+                    <div key={i} className="bg-neutral-100 dark:bg-neutral-900 rounded-xl h-64 animate-pulse border border-neutral-200 dark:border-neutral-800" />
+                  ))
+                ) : filtered.length === 0 ? (
+                  <div className="col-span-2 text-center py-16">
+                    <p className="text-3xl mb-3">🏠</p>
+                    <p className="font-medium text-neutral-600 dark:text-neutral-400 text-sm">No rentals found</p>
+                    <p className="text-xs mt-1 text-neutral-400 dark:text-neutral-600">Try adjusting your filters</p>
+                  </div>
+                ) : (
+                  filtered.map(listing => (
+                    <ListingCard key={listing.id} listing={listing} distKm={listing._distKm} onHover={setHoveredId} />
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -655,7 +615,7 @@ export default function Home() {
                   key={listing.id}
                   listing={listing}
                   distKm={listing._distKm}
-                  onTap={() => setSelectedListing(listing)}
+                  onTap={() => openListing(listing)}
                 />
               ))}
               <div className="shrink-0 w-4" />
@@ -663,22 +623,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Detail overlay */}
-        {selectedListing && (
-          <div className="absolute inset-0 z-[500] bg-white dark:bg-neutral-950 flex flex-col animate-slide-up">
-            <ListingDetailPanel
-              key={selectedListing.id}
-              listing={selectedListing}
-              onClose={handleCloseDetail}
-              onNext={handleNext}
-              onPrev={handlePrev}
-              hasNext={selectedIndex < filtered.length - 1}
-              hasPrev={selectedIndex > 0}
-              index={selectedIndex}
-              total={filtered.length}
-            />
-          </div>
-        )}
       </div>
 
       {filterOpen && <MobileFilterSheet onClose={() => setFilterOpen(false)} />}

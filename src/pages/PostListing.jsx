@@ -5,6 +5,7 @@ import { Upload, X, Loader2, CheckCircle, Search, LocateFixed, ChevronDown, File
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import ListingsMap from '../components/Map/ListingsMap'
+import PlacesAutocomplete from '../components/Places/PlacesAutocomplete.jsx'
 
 const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa',
@@ -102,13 +103,10 @@ export default function PostListing() {
   const [locCenter, setLocCenter] = useState([20.5937, 78.9629])
   const [locZoom, setLocZoom]     = useState(5)
   const [searchQuery, setSearchQuery]   = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [searchLoading, setSearchLoading] = useState(false)
   const [locating, setLocating]   = useState(false)
   const [autoCity, setAutoCity]   = useState('')
   const [autoState, setAutoState] = useState('')
   const [autoPincode, setAutoPincode] = useState('')
-  const searchTimer = useRef(null)
 
   // Step 3 — Amenities
   const [amenities, setAmenities] = useState([])
@@ -206,42 +204,17 @@ export default function PostListing() {
     setPickedLocation({ lat: e.latlng.lat, lng: e.latlng.lng })
   }, [])
 
-  const handleSearch = (q) => {
-    setSearchQuery(q)
-    clearTimeout(searchTimer.current)
-    if (q.length < 3) { setSearchResults([]); return }
-    searchTimer.current = setTimeout(async () => {
-      setSearchLoading(true)
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&countrycodes=in&addressdetails=1`,
-          { headers: { 'Accept-Language': 'en' } }
-        )
-        setSearchResults(await res.json())
-      } catch {}
-      setSearchLoading(false)
-    }, 400)
-  }
-
-  const applyGeocode = (addr, displayName) => {
-    const city = addr.city || addr.town || addr.village || addr.state_district || ''
-    const state = addr.state || ''
-    const pincode = (addr.postcode || '').replace(/\s/g, '').slice(0, 6)
+  const handlePlaceSelect = ({ lat, lng, city, state, pincode, name, formattedAddress }) => {
+    setPickedLocation({ lat, lng })
+    setLocCenter([lat, lng])
+    setLocZoom(17)
     if (city) setAutoCity(city)
-    if (pincode) setAutoPincode(pincode)
+    if (pincode) setAutoPincode(pincode.replace(/\s/g, '').slice(0, 6))
     const matched = INDIAN_STATES.find(s =>
       s.toLowerCase() === state.toLowerCase() || state.toLowerCase().includes(s.toLowerCase())
     )
     if (matched) setAutoState(matched)
-    if (displayName) setSearchQuery(displayName.split(',').slice(0, 2).join(', '))
-  }
-
-  const selectResult = (r) => {
-    const lat = parseFloat(r.lat); const lng = parseFloat(r.lon)
-    setPickedLocation({ lat, lng })
-    setLocCenter([lat, lng]); setLocZoom(17)
-    setSearchResults([])
-    applyGeocode(r.address || {}, r.display_name)
+    setSearchQuery(name ? [name, city].filter(Boolean).join(', ') : formattedAddress.split(',').slice(0, 2).join(', '))
   }
 
   const useMyLocation = () => {
@@ -257,7 +230,17 @@ export default function PostListing() {
             { headers: { 'Accept-Language': 'en' } }
           )
           const data = await res.json()
-          applyGeocode(data.address || {}, data.display_name)
+          const addr = data.address || {}
+          const city = addr.city || addr.town || addr.village || addr.state_district || ''
+          const state = addr.state || ''
+          const pincode = (addr.postcode || '').replace(/\s/g, '').slice(0, 6)
+          if (city) setAutoCity(city)
+          if (pincode) setAutoPincode(pincode)
+          const matched = INDIAN_STATES.find(s =>
+            s.toLowerCase() === state.toLowerCase() || state.toLowerCase().includes(s.toLowerCase())
+          )
+          if (matched) setAutoState(matched)
+          if (data.display_name) setSearchQuery(data.display_name.split(',').slice(0, 2).join(', '))
         } catch {}
         setLocating(false)
       },
@@ -520,30 +503,21 @@ export default function PostListing() {
               <p className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Search your society or tap the map to pin exactly</p>
             </div>
 
-            <div className="relative">
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-600 pointer-events-none" size={14} />
-                  <input type="text" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} placeholder="Society name, landmark, area…"
-                    className="w-full pl-9 pr-4 py-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white" />
-                  {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 animate-spin" size={13} />}
-                </div>
-                <button type="button" onClick={useMyLocation} disabled={locating} title="Use my location"
-                  className="flex items-center justify-center w-11 border border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 disabled:opacity-40 rounded-xl transition-colors shrink-0">
-                  {locating ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
-                </button>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-600 pointer-events-none z-10" size={14} />
+                <PlacesAutocomplete
+                  externalValue={searchQuery}
+                  onChange={setSearchQuery}
+                  onPlaceSelect={handlePlaceSelect}
+                  placeholder="Society name, landmark, area…"
+                  className="w-full pl-9 pr-4 py-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white"
+                />
               </div>
-              {searchResults.length > 0 && (
-                <div className="absolute z-[2000] top-full mt-1 w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-xl search-dropdown">
-                  {searchResults.map(r => (
-                    <button key={r.place_id} type="button" onClick={() => selectResult(r)}
-                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-800 last:border-0 transition-colors">
-                      <p className="text-sm font-medium text-neutral-950 dark:text-white truncate">{r.display_name.split(',')[0]}</p>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-600 truncate mt-0.5">{r.display_name.split(',').slice(1, 3).join(',')}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button type="button" onClick={useMyLocation} disabled={locating} title="Use my location"
+                className="flex items-center justify-center w-11 border border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 disabled:opacity-40 rounded-xl transition-colors shrink-0">
+                {locating ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
+              </button>
             </div>
 
             <div className={`rounded-2xl overflow-hidden border transition-colors ${pickedLocation ? 'border-neutral-950 dark:border-white' : 'border-neutral-200 dark:border-neutral-800'}`} style={{ height: 340 }}>

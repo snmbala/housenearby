@@ -1,11 +1,12 @@
 import { X, SlidersHorizontal } from 'lucide-react'
 import { useFilters } from '../../hooks/useFilters.jsx'
 import { useCity, CITIES } from '../../hooks/useCity.jsx'
+import PlacesAutocomplete from '../Places/PlacesAutocomplete.jsx'
 
 const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
 
 export default function MobileFilterSheet({ onClose }) {
-  const { propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea } = useFilters()
+  const { propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea, setUserCoords } = useFilters()
   const { city, selectCity } = useCity()
 
   const clearAll = () => {
@@ -127,11 +128,15 @@ export default function MobileFilterSheet({ onClose }) {
                   </div>
                 </div>
               )}
-              <input
-                type="text"
+              <PlacesAutocomplete
+                externalValue={locationArea}
+                onChange={(v) => { setLocationArea(v); setNearbyMode(!v.trim()) }}
+                onPlaceSelect={({ lat, lng, name }) => {
+                  setUserCoords({ lat, lng })
+                  setNearbyMode(true)
+                  setLocationArea(name || '')
+                }}
                 placeholder="Or search area (e.g. Whitefield)"
-                value={locationArea}
-                onChange={(e) => { setLocationArea(e.target.value); setNearbyMode(!e.target.value.trim()) }}
                 className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white"
               />
             </div>
