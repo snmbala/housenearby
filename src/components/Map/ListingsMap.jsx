@@ -5,40 +5,16 @@ import GoogleMutant from 'leaflet.gridlayer.googlemutant/src/Leaflet.GoogleMutan
 import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
-
 const LOCATE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>`
-const HOUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
 
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
-
-const listingCardIcon = (listing, hovered = false) => {
-  const thumb = listing.images?.[0]
+const listingPinIcon = (listing, hovered = false) => {
   const price = `₹${Number(listing.rent_amount).toLocaleString('en-IN')}`
-  const img = thumb
-    ? `<img src="${thumb}" style="width:100%;height:52px;object-fit:cover;display:block;" />`
-    : `<div style="width:100%;height:52px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;">${HOUSE_SVG}</div>`
-
-  const activeStyle = hovered
-    ? 'transform:translateY(-4px) scale(1.08);box-shadow:0 8px 24px rgba(0,0,0,0.28),0 0 0 2.5px #0a0a0a;'
-    : ''
-
   return L.divIcon({
     className: '',
-    html: `
-      <div class="map-card" style="${activeStyle}">
-        ${img}
-        <div class="map-card-price">${price}</div>
-        <div class="map-card-tip"></div>
-      </div>
-    `,
-    iconSize: [88, 84],
-    iconAnchor: [44, 84],
-    popupAnchor: [0, -88],
+    html: `<div class="map-pin${hovered ? ' map-pin--active' : ''}">${price}</div>`,
+    iconSize: [96, 28],
+    iconAnchor: [48, 28],
+    popupAnchor: [0, -32],
   })
 }
 
@@ -152,6 +128,7 @@ export default function ListingsMap({
         zoom={zoom}
         maxZoom={20}
         zoomControl={false}
+        attributionControl={false}
         className={pickMode ? 'cursor-crosshair' : ''}
         style={{ height: '100%', width: '100%' }}
       >
@@ -173,7 +150,7 @@ export default function ListingsMap({
             <Marker
               key={listing.id}
               position={[listing.lat, listing.lng]}
-              icon={listingCardIcon(listing, hovered)}
+              icon={listingPinIcon(listing, hovered)}
               zIndexOffset={hovered ? 1000 : 0}
               eventHandlers={{ click: () => handleMarkerClick(listing) }}
             />

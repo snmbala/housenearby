@@ -167,68 +167,48 @@ html.dark .locate-btn:hover {
   background: #1a1a1a;
 }
 
-/* ── Map card markers ───────────────────────────────────── */
+/* ── Map pin markers ────────────────────────────────────── */
 
-.map-card {
-  position: relative;
-  width: 88px;
+.map-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
   background: #ffffff;
-  border-radius: 10px;
-  overflow: visible;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.map-card:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
-  z-index: 1000 !important;
-}
-
-.map-card img, .map-card > div:first-child {
-  border-radius: 10px 10px 0 0;
-}
-
-.map-card-price {
+  border-radius: 14px;
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: #0a0a0a;
-  text-align: center;
-  padding: 4px 6px;
-  background: #ffffff;
-  border-radius: 0 0 10px 10px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
-.map-card-tip {
-  position: absolute;
-  bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 8px solid #ffffff;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+.map-pin:hover {
+  transform: scale(1.06);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.22), 0 0 0 1.5px rgba(0,0,0,0.1);
+  z-index: 1000 !important;
 }
 
-html.dark .map-card {
-  background: #111111;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
-}
-
-html.dark .map-card-price {
-  background: #111111;
+.map-pin--active {
+  background: #0a0a0a;
   color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transform: scale(1.08);
 }
 
-html.dark .map-card-tip {
-  border-top-color: #111111;
+html.dark .map-pin {
+  background: #1a1a1a;
+  color: #ffffff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+html.dark .map-pin--active {
+  background: #ffffff;
+  color: #0a0a0a;
 }
 
 /* ── User location pulse ────────────────────────────────── */
