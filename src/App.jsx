@@ -5,6 +5,7 @@ import { ThemeProvider } from './hooks/useTheme'
 import { CityProvider } from './hooks/useCity'
 import { FiltersProvider } from './hooks/useFilters'
 import { useState, useEffect } from 'react'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import Navbar from './components/Navbar'
 import BottomTabBar from './components/Mobile/BottomTabBar'
 import Home from './pages/Home'
@@ -18,7 +19,7 @@ import { supabase } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
 
 function Layout() {
-  const isMobile = window.matchMedia('(max-width: 767px)').matches
+  const isMobile = useMediaQuery('(max-width: 767px)')
   const [unread, setUnread] = useState(0)
   const { user } = useAuth()
   const location = useLocation()

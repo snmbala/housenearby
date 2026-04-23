@@ -1,13 +1,6 @@
 import { useState } from 'react'
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
-
-const BHK_LABELS = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
-const FURNISHING_LABELS = { furnished: 'Furnished', semi: 'Semi', unfurnished: 'Unfurnished' }
-
-function fmtDist(km) {
-  if (km == null) return null
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
-}
+import { BHK_LABELS, FURNISHING_LABELS, fmtDist } from '../../lib/listing'
 
 export default function ListingCard({ listing, distKm, onHover }) {
   const [imgIdx, setImgIdx] = useState(0)
@@ -34,6 +27,7 @@ export default function ListingCard({ listing, distKm, onHover }) {
               key={imgIdx}
               src={images[imgIdx]}
               alt=""
+              loading="lazy"
               className="w-full h-full object-cover"
             />
 

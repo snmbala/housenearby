@@ -5,6 +5,7 @@ import GoogleMutant from 'leaflet.gridlayer.googlemutant/src/Leaflet.GoogleMutan
 import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
+
 const LOCATE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>`
 const HOUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
 
@@ -114,44 +115,54 @@ export default function ListingsMap({
   hoveredId = null,
 }) {
   const navigate = useNavigate()
+  const { error: mapsError } = useGoogleMaps()
 
   const handleMarkerClick = (listing) => {
     if (onSelect) onSelect(listing)
     else navigate(`/listing/${listing.id}`)
   }
 
+  const validListings = listings.filter(l => l.lat != null && l.lng != null)
+
   return (
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      maxZoom={20}
-      zoomControl={false}
-      className={pickMode ? 'cursor-crosshair' : ''}
-      style={{ height: '100%', width: '100%' }}
-    >
-      <GoogleMutantLayer />
-
-      <FlyToCenter center={center} zoom={zoom} />
-      <ZoomControl position="bottomright" />
-      <LocateButton userCoords={userCoords} />
-      {onMapClick && <MapClickHandler onClick={onMapClick} />}
-
-      {userCoords && (
-        <Marker position={[userCoords.lat, userCoords.lng]} icon={userLocationIcon} />
+    <div className="relative h-full w-full">
+      {mapsError && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[2000] bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-1.5 rounded-full pointer-events-none">
+          Map tiles unavailable — check your Google Maps API key
+        </div>
       )}
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        maxZoom={20}
+        zoomControl={false}
+        className={pickMode ? 'cursor-crosshair' : ''}
+        style={{ height: '100%', width: '100%' }}
+      >
+        <GoogleMutantLayer />
 
-      {listings.map((listing) => {
-        const hovered = listing.id === hoveredId
-        return (
-          <Marker
-            key={listing.id}
-            position={[listing.lat, listing.lng]}
-            icon={listingCardIcon(listing, hovered)}
-            zIndexOffset={hovered ? 1000 : 0}
-            eventHandlers={{ click: () => handleMarkerClick(listing) }}
-          />
-        )
-      })}
-    </MapContainer>
+        <FlyToCenter center={center} zoom={zoom} />
+        <ZoomControl position="bottomright" />
+        <LocateButton userCoords={userCoords} />
+        {onMapClick && <MapClickHandler onClick={onMapClick} />}
+
+        {userCoords && (
+          <Marker position={[userCoords.lat, userCoords.lng]} icon={userLocationIcon} />
+        )}
+
+        {validListings.map((listing) => {
+          const hovered = listing.id === hoveredId
+          return (
+            <Marker
+              key={listing.id}
+              position={[listing.lat, listing.lng]}
+              icon={listingCardIcon(listing, hovered)}
+              zIndexOffset={hovered ? 1000 : 0}
+              eventHandlers={{ click: () => handleMarkerClick(listing) }}
+            />
+          )
+        })}
+      </MapContainer>
+    </div>
   )
 }

@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import ListingsMap from '../components/Map/ListingsMap'
 import ListingCard from '../components/Listing/ListingCard'
+import MobileCard from '../components/Listing/MobileCard'
 import MobileFilterSheet from '../components/Mobile/MobileFilterSheet'
 import { useCity } from '../hooks/useCity.jsx'
 import { useFilters } from '../hooks/useFilters.jsx'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import SEOMeta from '../components/SEOMeta.jsx'
-import { Search, SlidersHorizontal, X, MapPin, BedDouble, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, X, MessageSquare, User, PlusCircle, ChevronDown } from 'lucide-react'
 import PlacesAutocomplete from '../components/Places/PlacesAutocomplete.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
+import { CITY_ALIASES, getCityCenter } from '../lib/cities'
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371
@@ -19,14 +21,6 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
   return R * 2 * Math.asin(Math.sqrt(a))
-}
-
-const CITY_ALIASES = {
-  'bangalore': 'Bengaluru', 'bengaluru': 'Bengaluru', 'bengalore': 'Bengaluru',
-  'mumbai': 'Mumbai', 'bombay': 'Mumbai', 'delhi': 'Delhi', 'new delhi': 'Delhi',
-  'chennai': 'Chennai', 'madras': 'Chennai', 'hyderabad': 'Hyderabad', 'pune': 'Pune',
-  'kolkata': 'Kolkata', 'calcutta': 'Kolkata', 'ahmedabad': 'Ahmedabad',
-  'jaipur': 'Jaipur', 'kochi': 'Kochi', 'cochin': 'Kochi',
 }
 
 async function detectCity() {
@@ -54,114 +48,13 @@ async function detectCity() {
   })
 }
 
-function getCityCenter(city) {
-  const c = {
-    'Mumbai': [19.0760, 72.8777], 'Delhi': [28.6139, 77.2090],
-    'Bengaluru': [12.9716, 77.5946], 'Chennai': [13.0827, 80.2707],
-    'Hyderabad': [17.3850, 78.4867], 'Pune': [18.5204, 73.8567],
-    'Kolkata': [22.5726, 88.3639], 'Ahmedabad': [23.0225, 72.5714],
-    'Jaipur': [26.9124, 75.7873], 'Kochi': [9.9312, 76.2673],
-  }
-  return c[city] ?? [20.5937, 78.9629]
-}
-
-const BHK_LABELS = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
-const FURNISHING_LABELS = { furnished: 'Furnished', semi: 'Semi', unfurnished: 'Unfurnished' }
-
-function fmtDist(km) {
-  if (km == null) return null
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
-}
-
-// Horizontal swipe card — image grid matches desktop ListingCard
-function MobileCard({ listing, distKm, onTap }) {
-  const images = listing.images?.slice(0, 3) ?? []
-
-  return (
-    <div
-      className="snap-center shrink-0 w-[82vw] bg-neutral-50 dark:bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-200/60 dark:border-neutral-800 active:scale-[0.97] transition-transform"
-      onClick={onTap}
-    >
-      {/* Image grid — same logic as desktop ListingCard */}
-      <div className="h-48 flex gap-0.5 overflow-hidden">
-        {images.length === 0 && (
-          <div className="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-3xl">🏠</div>
-        )}
-        {images.length === 1 && (
-          <div className="relative w-full h-full">
-            <img src={images[0]} alt="" className="w-full h-full object-cover" />
-            <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/55 text-white backdrop-blur-sm">
-              {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
-            </span>
-          </div>
-        )}
-        {images.length === 2 && (
-          <>
-            <div className="relative w-1/2 h-full">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
-              <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/55 text-white backdrop-blur-sm">
-                {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
-              </span>
-            </div>
-            <div className="w-1/2 h-full">
-              <img src={images[1]} alt="" className="w-full h-full object-cover" />
-            </div>
-          </>
-        )}
-        {images.length >= 3 && (
-          <>
-            <div className="relative w-3/5 h-full">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
-              <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/55 text-white backdrop-blur-sm">
-                {FURNISHING_LABELS[listing.furnishing] ?? listing.furnishing}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5 w-2/5 h-full">
-              <img src={images[1]} alt="" className="w-full h-1/2 object-cover" />
-              <div className="relative w-full h-1/2">
-                <img src={images[2]} alt="" className="w-full h-full object-cover" />
-                {listing.images.length > 3 && (
-                  <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                    <span className="text-white text-xs font-semibold">+{listing.images.length - 3}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Info row */}
-      <div className="px-3 py-2.5">
-        <div className="flex items-baseline justify-between gap-2 mb-1">
-          <p className="text-sm font-semibold text-neutral-950 dark:text-white leading-snug line-clamp-1 flex-1">
-            {listing.title}
-          </p>
-          <span className="font-[Bricolage_Grotesque] text-sm font-bold text-neutral-950 dark:text-white shrink-0">
-            ₹{Number(listing.rent_amount).toLocaleString('en-IN')}
-            <span className="font-normal text-neutral-400 dark:text-neutral-600 text-[11px]">/mo</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-neutral-400 dark:text-neutral-600">
-            <MapPin size={10} />
-            <span className="text-[11px] truncate max-w-[140px]">{listing.city || listing.address || '—'}</span>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-neutral-400 dark:text-neutral-600">
-            <span className="flex items-center gap-0.5">
-              <BedDouble size={10} /> {BHK_LABELS[listing.bhk] ?? `${listing.bhk} BHK`}
-            </span>
-            {fmtDist(distKm) && <span>{fmtDist(distKm)}</span>}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
 
-function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, locationArea, setLocationArea, setUserCoords, activeFilterCount }) {
+function DesktopFilterBar({
+  search, setSearch, propType, setPropType, maxRent, setMaxRent,
+  nearbyMode, setNearbyMode, radiusKm, setRadiusKm,
+  locationArea, setLocationArea, setUserCoords, userCoords, activeFilterCount,
+}) {
   const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'location'
   const barRef = useRef(null)
 
@@ -308,10 +201,13 @@ function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, s
         )}
       </div>
 
-      {/* Clear all */}
+      {/* Clear all — only resets nearbyMode if coords are available */}
       {activeFilterCount > 0 && (
         <button
-          onClick={() => { setPropType('All'); setMaxRent(''); setNearbyMode(true); setRadiusKm(6); setLocationArea(''); setSearch('') }}
+          onClick={() => {
+            setPropType('All'); setMaxRent(''); setNearbyMode(!!userCoords)
+            setRadiusKm(6); setLocationArea(''); setSearch('')
+          }}
           className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors px-1"
         >
           Clear all
@@ -324,10 +220,15 @@ function DesktopFilterBar({ search, setSearch, propType, setPropType, maxRent, s
 export default function Home() {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const { city, setCity, cityManuallySelected } = useCity()
-  const { search, setSearch, propType, setPropType, maxRent, setMaxRent, nearbyMode, setNearbyMode, radiusKm, setRadiusKm, userCoords, setUserCoords, locationArea, setLocationArea } = useFilters()
+  const {
+    search, setSearch, propType, setPropType, maxRent, setMaxRent,
+    nearbyMode, setNearbyMode, radiusKm, setRadiusKm,
+    userCoords, setUserCoords, locationArea, setLocationArea,
+  } = useFilters()
 
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
   const [mapOverride, setMapOverride] = useState(null)
   const [hoveredId, setHoveredId] = useState(null)
 
@@ -351,28 +252,40 @@ export default function Home() {
     })
   }, [])
 
-  useEffect(() => { fetchListings() }, [city, propType, maxRent])
-
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     setLoading(true)
-    let q = supabase.from('listings').select('*').eq('is_active', true).order('created_at', { ascending: false })
+    setFetchError(null)
+    let q = supabase
+      .from('listings').select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(200)
     if (city !== 'All Cities') q = q.eq('city', city)
     if (propType !== 'All') q = q.eq('property_type', propType.toLowerCase())
     if (maxRent) q = q.lte('rent_amount', parseInt(maxRent))
-    const { data } = await q
-    setListings(data ?? [])
+    const { data, error } = await q
+    if (error) {
+      setFetchError('Failed to load listings. Please try again.')
+    } else {
+      setListings(data ?? [])
+    }
     setLoading(false)
-  }
+  }, [city, propType, maxRent])
 
-  const filtered = listings
-    .filter(l => {
-      const matchSearch = search === '' || [l.title, l.city, l.address].some(f => f?.toLowerCase().includes(search.toLowerCase()))
-      const matchRadius = !nearbyMode || !userCoords || haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) <= radiusKm
-      const matchArea = !locationArea || [l.city, l.address].some(f => f?.toLowerCase().includes(locationArea.toLowerCase()))
-      return matchSearch && matchRadius && matchArea
-    })
-    .map(l => ({ ...l, _distKm: userCoords ? haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) : null }))
-    .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm)
+  useEffect(() => { fetchListings() }, [fetchListings])
+
+  const filtered = useMemo(() =>
+    listings
+      .filter(l => {
+        const matchSearch = search === '' || [l.title, l.city, l.address].some(f => f?.toLowerCase().includes(search.toLowerCase()))
+        const matchRadius = !nearbyMode || !userCoords || haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) <= radiusKm
+        const matchArea = !locationArea || [l.city, l.address].some(f => f?.toLowerCase().includes(locationArea.toLowerCase()))
+        return matchSearch && matchRadius && matchArea
+      })
+      .map(l => ({ ...l, _distKm: userCoords ? haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) : null }))
+      .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm),
+    [listings, search, nearbyMode, userCoords, radiusKm, locationArea]
+  )
 
   const defaultCenter = cityManuallySelected && city !== 'All Cities'
     ? getCityCenter(city) : userCoords ? [userCoords.lat, userCoords.lng] : [20.5937, 78.9629]
@@ -398,26 +311,31 @@ export default function Home() {
     }
   }, [filtered.length, isMobile])
 
-  // Scroll carousel to a specific index
+  // Scroll carousel using the card's actual DOM position to avoid magic numbers
   const scrollToCard = useCallback((idx) => {
     const el = carouselRef.current
     if (!el) return
-    const cardW = el.clientWidth * 0.82 + 12 // 82vw + gap
+    const card = el.children[idx]
+    if (!card) return
     scrollingProgrammatically.current = true
-    el.scrollTo({ left: idx * cardW, behavior: 'smooth' })
+    el.scrollTo({ left: card.offsetLeft - 16, behavior: 'smooth' }) // 16 = px-4 padding
     setTimeout(() => { scrollingProgrammatically.current = false }, 500)
     setActiveCardIdx(idx)
   }, [])
 
-  // Detect active card from scroll position
+  // Detect active card from scroll — reads card width from DOM, no dep on activeCardIdx
   const onCarouselScroll = useCallback((e) => {
     if (scrollingProgrammatically.current) return
     const el = e.currentTarget
-    const cardW = el.clientWidth * 0.82 + 12
+    const firstCard = el.children[0]
+    if (!firstCard) return
+    const cardW = firstCard.offsetWidth + 12 // 12 = gap-3
     const idx = Math.round(el.scrollLeft / cardW)
-    const clamped = Math.max(0, Math.min(idx, filtered.length - 1))
-    if (clamped !== activeCardIdx) setActiveCardIdx(clamped)
-  }, [activeCardIdx, filtered.length])
+    setActiveCardIdx(prev => {
+      const clamped = Math.max(0, Math.min(idx, el.children.length - 2)) // -2 for trailing spacer
+      return clamped !== prev ? clamped : prev
+    })
+  }, [])
 
   // Map marker tap → scroll carousel to that listing (mobile) or open in new tab (desktop)
   const handleMapSelect = useCallback((listing) => {
@@ -445,7 +363,6 @@ export default function Home() {
           description={`Browse ${filtered.length} rental properties${city !== 'All Cities' ? ` in ${city}` : ' near you'} — apartments, houses, PGs and villas. No broker fees.`}
         />
 
-        {/* ── Filter bar ── */}
         <DesktopFilterBar
           search={search} setSearch={setSearch}
           propType={propType} setPropType={setPropType}
@@ -454,21 +371,20 @@ export default function Home() {
           radiusKm={radiusKm} setRadiusKm={setRadiusKm}
           locationArea={locationArea} setLocationArea={setLocationArea}
           setUserCoords={setUserCoords}
+          userCoords={userCoords}
           activeFilterCount={activeFilterCount}
         />
 
         <div className="flex-1 overflow-hidden flex">
-          {/* Map */}
           <div className="flex-1 min-w-0">
             <ListingsMap listings={filtered} center={mapCenter} zoom={mapZoom} userCoords={userCoords} onSelect={handleMapSelect} hoveredId={hoveredId} />
           </div>
 
-          {/* Right panel */}
           <div className="w-[600px] shrink-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-900 flex flex-col overflow-hidden">
             <div className="overflow-y-auto flex-1">
               <div className="px-4 pt-4 pb-2">
                 <p className="text-sm font-semibold text-neutral-950 dark:text-white">
-                  {loading ? 'Loading…' : resultLabel}
+                  {loading ? 'Loading…' : fetchError ?? resultLabel}
                 </p>
               </div>
               <div className="px-4 pb-4 grid grid-cols-2 gap-3">
@@ -476,6 +392,12 @@ export default function Home() {
                   Array(4).fill(0).map((_, i) => (
                     <div key={i} className="bg-neutral-100 dark:bg-neutral-900 rounded-xl h-64 animate-pulse border border-neutral-200 dark:border-neutral-800" />
                   ))
+                ) : fetchError ? (
+                  <div className="col-span-2 text-center py-16">
+                    <p className="text-3xl mb-3">⚠️</p>
+                    <p className="font-medium text-neutral-600 dark:text-neutral-400 text-sm">{fetchError}</p>
+                    <button onClick={fetchListings} className="mt-3 text-xs underline text-neutral-500">Retry</button>
+                  </div>
                 ) : filtered.length === 0 ? (
                   <div className="col-span-2 text-center py-16">
                     <p className="text-3xl mb-3">🏠</p>
@@ -505,7 +427,6 @@ export default function Home() {
 
       <div className="flex flex-col h-full bg-neutral-100 dark:bg-neutral-900">
 
-        {/* Map section — flex-1, search bar floats over it */}
         <div className="relative flex-1 min-h-0">
           <ListingsMap
             listings={filtered}
@@ -569,15 +490,13 @@ export default function Home() {
           {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
         </div>
 
-        {/* Card carousel — natural flex row, always visible above tab bar */}
+        {/* Card carousel */}
         <div className="shrink-0 bg-transparent pt-3 pb-3">
-
-          {/* Count + dots */}
           <div className="px-4 mb-2.5 flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-              {loading ? 'Loading…' : resultLabel}
+              {loading ? 'Loading…' : fetchError ? 'Failed to load' : resultLabel}
             </span>
-            {!loading && filtered.length > 1 && filtered.length <= 12 && (
+            {!loading && !fetchError && filtered.length > 1 && filtered.length <= 12 && (
               <div className="flex items-center gap-1">
                 {filtered.map((_, i) => (
                   <div
@@ -598,6 +517,11 @@ export default function Home() {
               {Array(2).fill(0).map((_, i) => (
                 <div key={i} className="shrink-0 w-[82vw] h-[200px] bg-neutral-100 dark:bg-neutral-900 rounded-2xl animate-pulse" />
               ))}
+            </div>
+          ) : fetchError ? (
+            <div className="mx-4 py-4 text-center">
+              <p className="text-sm font-medium text-neutral-500">{fetchError}</p>
+              <button onClick={fetchListings} className="mt-2 text-xs underline text-neutral-400">Retry</button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="mx-4 py-4 text-center">

@@ -1,5 +1,5 @@
 -- =============================================
--- HouseDirect - Supabase Schema
+-- HouseNearby - Supabase Schema
 -- Run this in your Supabase SQL editor
 -- =============================================
 
