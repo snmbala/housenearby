@@ -5,6 +5,7 @@ const Ctx = createContext(null)
 export function FiltersProvider({ children }) {
   const [search, setSearch] = useState('')
   const [propType, setPropType] = useState('All')
+  const [minRent, setMinRent] = useState('')
   const [maxRent, setMaxRent] = useState('')
   const [bhk, setBhk] = useState([])
   const [amenities, setAmenities] = useState([])
@@ -14,6 +15,7 @@ export function FiltersProvider({ children }) {
     <Ctx.Provider value={{
       search, setSearch,
       propType, setPropType,
+      minRent, setMinRent,
       maxRent, setMaxRent,
       bhk, setBhk,
       amenities, setAmenities,

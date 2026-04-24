@@ -1,16 +1,22 @@
 import { X, SlidersHorizontal, Check } from 'lucide-react'
 import { useFilters } from '../../hooks/useFilters.jsx'
 import { useCity, CITIES } from '../../hooks/useCity.jsx'
-import { BHK_OPTIONS, AMENITIES } from '../../lib/listing'
+import { BHK_OPTIONS, AMENITIES, RENT_PRESETS } from '../../lib/listing'
 
 const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
+const BHK_APPLIES_TO = new Set(['All', 'Apartment', 'House', 'Villa'])
+
+const fmtRent = v => {
+  const n = Number(v)
+  return n >= 100000 ? `₹${n / 100000}L` : `₹${n / 1000}k`
+}
 
 export default function MobileFilterSheet({ onClose }) {
-  const { propType, setPropType, maxRent, setMaxRent, bhk, setBhk, amenities, setAmenities } = useFilters()
+  const { propType, setPropType, minRent, setMinRent, maxRent, setMaxRent, bhk, setBhk, amenities, setAmenities } = useFilters()
   const { city, selectCity } = useCity()
 
   const clearAll = () => {
-    setPropType('All'); setMaxRent(''); setBhk([]); setAmenities([])
+    setPropType('All'); setMinRent(''); setMaxRent(''); setBhk([]); setAmenities([])
   }
 
   const toggleBhk = (v) => setBhk(prev => prev.includes(v) ? prev.filter(b => b !== v) : [...prev, v])
@@ -54,7 +60,18 @@ export default function MobileFilterSheet({ onClose }) {
             </div>
           </div>
 
-          {/* BHK */}
+          {/* Property type */}
+          <div>
+            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2.5">Property type</p>
+            <div className="flex flex-wrap gap-2">
+              {PROPERTY_TYPES.map(t => (
+                <button key={t} onClick={() => { setPropType(t); if (!BHK_APPLIES_TO.has(t)) setBhk([]) }} className={chip(propType === t)}>{t}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* BHK — only shown for property types that have bedrooms */}
+          {BHK_APPLIES_TO.has(propType) && (
           <div>
             <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2.5">Bedrooms</p>
             <div className="flex flex-wrap gap-2">
@@ -65,34 +82,29 @@ export default function MobileFilterSheet({ onClose }) {
               ))}
             </div>
           </div>
+          )}
 
-          {/* Property type */}
+          {/* Rent range */}
           <div>
-            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2.5">Property type</p>
-            <div className="flex flex-wrap gap-2">
-              {PROPERTY_TYPES.map(t => (
-                <button key={t} onClick={() => setPropType(t)} className={chip(propType === t)}>{t}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Budget */}
-          <div>
-            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2.5">Max budget</p>
-            <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3 focus-within:ring-1 focus-within:ring-neutral-950 dark:focus-within:ring-white">
-              <span className="text-neutral-400 dark:text-neutral-600 text-sm">₹</span>
-              <input
-                type="number"
-                placeholder="e.g. 25,000"
+            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-2.5">Rent range / month</p>
+            <div className="flex items-center gap-3">
+              <select
+                value={minRent}
+                onChange={e => setMinRent(e.target.value)}
+                className="flex-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-3 text-sm text-neutral-950 dark:text-white focus:outline-none"
+              >
+                <option value="">No min</option>
+                {RENT_PRESETS.map(p => <option key={p} value={p}>{fmtRent(p)}</option>)}
+              </select>
+              <span className="text-neutral-400 dark:text-neutral-600 text-sm shrink-0">to</span>
+              <select
                 value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
-                className="flex-1 bg-transparent text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 text-sm focus:outline-none"
-              />
-              {maxRent && (
-                <button onClick={() => setMaxRent('')} className="text-neutral-400 hover:text-neutral-700">
-                  <X size={14} />
-                </button>
-              )}
+                onChange={e => setMaxRent(e.target.value)}
+                className="flex-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-3 text-sm text-neutral-950 dark:text-white focus:outline-none"
+              >
+                <option value="">No max</option>
+                {RENT_PRESETS.map(p => <option key={p} value={p}>{fmtRent(p)}</option>)}
+              </select>
             </div>
           </div>
 

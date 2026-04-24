@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useDebounce } from '../hooks/useDebounce'
 import { supabase } from '../lib/supabase'
 import ListingsMap from '../components/Map/ListingsMap'
 import ListingCard from '../components/Listing/ListingCard'
@@ -14,7 +15,21 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
 import { CITY_ALIASES, getCityCenter } from '../lib/cities'
-import { BHK_LABELS, BHK_OPTIONS, AMENITIES } from '../lib/listing'
+import { BHK_LABELS, BHK_OPTIONS, AMENITIES, RENT_PRESETS } from '../lib/listing'
+
+const BHK_APPLIES_TO = new Set(['All', 'Apartment', 'House', 'Villa'])
+
+const fmtRent = v => {
+  const n = Number(v)
+  return n >= 100000 ? `₹${n / 100000}L` : `₹${n / 1000}k`
+}
+
+const getPriceLabel = (min, max) => {
+  if (!min && !max) return 'Price'
+  if (min && max) return `${fmtRent(min)} – ${fmtRent(max)}`
+  if (min) return `${fmtRent(min)}+`
+  return `Up to ${fmtRent(max)}`
+}
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371
@@ -52,12 +67,14 @@ async function detectCity() {
 const PROPERTY_TYPES = ['All', 'Apartment', 'House', 'PG', 'Studio', 'Villa']
 
 function DesktopFilterBar({
-  search, setSearch, propType, setPropType, maxRent, setMaxRent,
+  search, setSearch, propType, setPropType, minRent, setMinRent, maxRent, setMaxRent,
   bhk, setBhk, amenities, setAmenities,
-  setUserCoords, activeFilterCount, setMapOverride,
+  userCoords, setUserCoords, activeFilterCount, setMapOverride, setSearchedCoords,
 }) {
   const [openPanel, setOpenPanel] = useState(null) // 'propType' | 'price' | 'bhk' | 'amenities'
   const barRef = useRef(null)
+  const searchRef = useRef(null)
+  const [hasInput, setHasInput] = useState(false)
 
   useEffect(() => {
     const handler = (e) => { if (barRef.current && !barRef.current.contains(e.target)) setOpenPanel(null) }
@@ -74,19 +91,24 @@ function DesktopFilterBar({
       <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 flex-1 max-w-sm focus-within:border-neutral-950 dark:focus-within:border-white transition-colors">
         <Search size={14} className="text-neutral-400 dark:text-neutral-600 shrink-0" />
         <PlacesAutocomplete
-          externalValue={search}
-          onChange={(v) => setSearch(v)}
-          onPlaceSelect={({ lat, lng, name, city: placeCity }) => {
+          ref={searchRef}
+          onChange={(v) => { setSearch(v); setHasInput(v !== '') }}
+          onPlaceSelect={({ lat, lng, city: placeCity }) => {
             setUserCoords({ lat, lng })
             const isCityLevel = CITIES.includes(placeCity)
             setMapOverride({ center: [lat, lng], zoom: isCityLevel ? 12 : 15 })
-            setSearch(name || placeCity || '')
+            setSearch('')
+            setHasInput(true)
+            setSearchedCoords({ lat, lng })
           }}
           placeholder="Search city, area or title…"
           className="flex-1 bg-transparent text-sm text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none min-w-0"
         />
-        {search && (
-          <button onClick={() => setSearch('')} className="text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 shrink-0">
+        {(search || hasInput) && (
+          <button onClick={() => {
+            searchRef.current?.clear(); setSearch(''); setHasInput(false); setSearchedCoords(null)
+            if (userCoords) setMapOverride({ center: [userCoords.lat, userCoords.lng], zoom: 14 })
+          }} className="text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 shrink-0">
             <X size={13} />
           </button>
         )}
@@ -111,7 +133,7 @@ function DesktopFilterBar({
               {PROPERTY_TYPES.map(t => (
                 <button
                   key={t}
-                  onClick={() => { setPropType(t); setOpenPanel(null) }}
+                  onClick={() => { setPropType(t); if (!BHK_APPLIES_TO.has(t)) setBhk([]); setOpenPanel(null) }}
                   className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                     propType === t
                       ? 'bg-neutral-950 dark:bg-white text-white dark:text-black font-medium'
@@ -131,33 +153,47 @@ function DesktopFilterBar({
         <button
           onClick={() => toggle('price')}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
-            maxRent !== ''
+            minRent !== '' || maxRent !== ''
               ? 'border-neutral-950 dark:border-white bg-neutral-950 dark:bg-white text-white dark:text-black'
               : 'border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600'
           }`}
         >
-          {maxRent !== '' ? `Under ₹${Number(maxRent).toLocaleString('en-IN')}` : 'Price'}
+          {getPriceLabel(minRent, maxRent)}
           <ChevronDown size={13} className={openPanel === 'price' ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
         </button>
         {openPanel === 'price' && (
-          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-4 min-w-[220px] search-dropdown">
-            <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider mb-2.5">Max budget</p>
-            <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-neutral-950 dark:focus-within:ring-white">
-              <span className="text-sm text-neutral-400 dark:text-neutral-600">₹</span>
-              <input
-                type="number"
-                placeholder="e.g. 25,000"
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-[1100] p-4 min-w-[260px] search-dropdown">
+            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-600 uppercase tracking-widest mb-3">Rent range / month</p>
+            <div className="flex items-center gap-2">
+              <select
+                value={minRent}
+                onChange={e => setMinRent(e.target.value)}
+                className="flex-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-2 py-2 text-sm text-neutral-950 dark:text-white focus:outline-none"
+              >
+                <option value="">No min</option>
+                {RENT_PRESETS.map(p => <option key={p} value={p}>{fmtRent(p)}</option>)}
+              </select>
+              <span className="text-neutral-400 dark:text-neutral-600 text-sm shrink-0">to</span>
+              <select
                 value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-neutral-950 dark:text-white placeholder-neutral-400 focus:outline-none"
-              />
-              {maxRent && <button onClick={() => setMaxRent('')}><X size={13} className="text-neutral-400" /></button>}
+                onChange={e => setMaxRent(e.target.value)}
+                className="flex-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-2 py-2 text-sm text-neutral-950 dark:text-white focus:outline-none"
+              >
+                <option value="">No max</option>
+                {RENT_PRESETS.map(p => <option key={p} value={p}>{fmtRent(p)}</option>)}
+              </select>
             </div>
+            {(minRent || maxRent) && (
+              <button onClick={() => { setMinRent(''); setMaxRent('') }} className="mt-2.5 text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300">
+                Clear
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* BHK pill */}
+      {/* BHK pill — only for property types that have bedrooms */}
+      {BHK_APPLIES_TO.has(propType) && (
       <div className="relative">
         <button
           onClick={() => toggle('bhk')}
@@ -196,6 +232,7 @@ function DesktopFilterBar({
           </div>
         )}
       </div>
+      )}
 
       {/* Amenities pill */}
       <div className="relative">
@@ -245,9 +282,12 @@ function DesktopFilterBar({
         )}
       </div>
 
-      {activeFilterCount > 0 && (
+      {(activeFilterCount > 0 || hasInput) && (
         <button
-          onClick={() => { setPropType('All'); setMaxRent(''); setBhk([]); setAmenities([]); setSearch('') }}
+          onClick={() => {
+            setPropType('All'); setMinRent(''); setMaxRent(''); setBhk([]); setAmenities([]); setSearch(''); searchRef.current?.clear(); setHasInput(false); setSearchedCoords(null)
+            if (userCoords) setMapOverride({ center: [userCoords.lat, userCoords.lng], zoom: 14 })
+          }}
           className="text-xs text-neutral-400 dark:text-neutral-600 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors px-1"
         >
           Clear all
@@ -261,10 +301,12 @@ export default function Home() {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const { city, setCity, cityManuallySelected } = useCity()
   const {
-    search, setSearch, propType, setPropType, maxRent, setMaxRent,
+    search, setSearch, propType, setPropType, minRent, setMinRent, maxRent, setMaxRent,
     bhk, setBhk, amenities, setAmenities,
     userCoords, setUserCoords,
   } = useFilters()
+
+  const debouncedSearch = useDebounce(search, 450)
 
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -272,6 +314,9 @@ export default function Home() {
   const [mapOverride, setMapOverride] = useState(null)
   const [hoveredId, setHoveredId] = useState(null)
   const [mapBounds, setMapBounds] = useState(null)
+  const [searchedCoords, setSearchedCoords] = useState(null)
+  const hasLoadedOnce = useRef(false)
+  const debouncedMapBounds = useDebounce(mapBounds, 600)
 
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -283,6 +328,8 @@ export default function Home() {
   const [filterOpen, setFilterOpen] = useState(false)
   const carouselRef = useRef(null)
   const scrollingProgrammatically = useRef(false)
+  const mobileSearchRef = useRef(null)
+  const [mobileHasInput, setMobileHasInput] = useState(false)
 
   useEffect(() => {
     detectCity().then((result) => {
@@ -293,15 +340,30 @@ export default function Home() {
   }, [])
 
   const fetchListings = useCallback(async () => {
-    setLoading(true)
+    // First-ever load shows skeleton; subsequent fetches (pan/zoom/filter) are silent —
+    // old listings stay visible while new ones load.
+    if (!hasLoadedOnce.current) setLoading(true)
     setFetchError(null)
+
     let q = supabase
       .from('listings').select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-      .limit(200)
+      .limit(150)
+
+    // Viewport bounding box — primary spatial filter when the map is ready
+    if (debouncedMapBounds) {
+      q = q
+        .gte('lat', debouncedMapBounds.south)
+        .lte('lat', debouncedMapBounds.north)
+        .gte('lng', debouncedMapBounds.west)
+        .lte('lng', debouncedMapBounds.east)
+    }
+
+    // Keep city as an additional constraint (user explicitly chose it)
     if (city !== 'All Cities') q = q.eq('city', city)
     if (propType !== 'All') q = q.eq('property_type', propType.toLowerCase())
+    if (minRent) q = q.gte('rent_amount', parseInt(minRent))
     if (maxRent) q = q.lte('rent_amount', parseInt(maxRent))
     if (bhk.length > 0) {
       const specific = bhk.filter(b => b < 4)
@@ -310,6 +372,7 @@ export default function Home() {
       else if (fourPlus) q = q.gte('bhk', 4)
       else q = q.in('bhk', specific)
     }
+
     const { data, error } = await q
     if (error) {
       setFetchError('Failed to load listings. Please try again.')
@@ -317,16 +380,17 @@ export default function Home() {
       setListings(data ?? [])
     }
     setLoading(false)
-  }, [city, propType, maxRent, bhk.join(',')])
+    hasLoadedOnce.current = true
+  }, [debouncedMapBounds, city, propType, minRent, maxRent, bhk.join(',')])
 
   useEffect(() => { fetchListings() }, [fetchListings])
 
   const allFiltered = useMemo(() => {
-    const searchLower = search.toLowerCase()
-    const searchNorm = (CITY_ALIASES[searchLower] ?? search).toLowerCase()
+    const searchLower = debouncedSearch.toLowerCase()
+    const searchNorm = (CITY_ALIASES[searchLower] ?? debouncedSearch).toLowerCase()
     return listings
       .filter(l => {
-        if (search !== '') {
+        if (debouncedSearch !== '') {
           const fields = [l.title, l.city, l.address]
           if (!fields.some(f =>
             f?.toLowerCase().includes(searchLower) ||
@@ -340,18 +404,10 @@ export default function Home() {
       })
       .map(l => ({ ...l, _distKm: userCoords ? haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng) : null }))
       .sort((a, b) => (a._distKm == null || b._distKm == null) ? 0 : a._distKm - b._distKm)
-  }, [listings, search, userCoords, amenities])
+  }, [listings, debouncedSearch, userCoords, amenities])
 
-  // Desktop right panel: when text search is active show all matches regardless of viewport;
-  // otherwise show only what's in the current map bounds.
-  const visibleListings = useMemo(() => {
-    if (search !== '' || !mapBounds) return allFiltered
-    return allFiltered.filter(l =>
-      l.lat != null && l.lng != null &&
-      l.lat >= mapBounds.south && l.lat <= mapBounds.north &&
-      l.lng >= mapBounds.west && l.lng <= mapBounds.east
-    )
-  }, [allFiltered, mapBounds, search])
+  // DB already filters by viewport; allFiltered just applies text + amenity pass
+  const visibleListings = allFiltered
 
   const defaultCenter = cityManuallySelected && city !== 'All Cities'
     ? getCityCenter(city) : userCoords ? [userCoords.lat, userCoords.lng] : [20.5937, 78.9629]
@@ -415,10 +471,8 @@ export default function Home() {
     }
   }, [isMobile, allFiltered, scrollToCard])
 
-  const activeFilterCount = [propType !== 'All', maxRent !== '', bhk.length > 0, amenities.length > 0].filter(Boolean).length
-  const resultLabel = mapBounds
-    ? `${visibleListings.length} in view`
-    : `${allFiltered.length} rentals`
+  const activeFilterCount = [propType !== 'All', minRent !== '' || maxRent !== '', BHK_APPLIES_TO.has(propType) && bhk.length > 0, amenities.length > 0].filter(Boolean).length
+  const resultLabel = `${allFiltered.length} in view`
 
   // ── Desktop layout ──────────────────────────────────────────
   if (!isMobile) {
@@ -432,17 +486,20 @@ export default function Home() {
         <DesktopFilterBar
           search={search} setSearch={setSearch}
           propType={propType} setPropType={setPropType}
+          minRent={minRent} setMinRent={setMinRent}
           maxRent={maxRent} setMaxRent={setMaxRent}
           bhk={bhk} setBhk={setBhk}
           amenities={amenities} setAmenities={setAmenities}
+          userCoords={userCoords}
           setUserCoords={setUserCoords}
           activeFilterCount={activeFilterCount}
           setMapOverride={setMapOverride}
+          setSearchedCoords={setSearchedCoords}
         />
 
         <div className="flex-1 overflow-hidden flex">
           <div className="flex-1 min-w-0">
-            <ListingsMap listings={allFiltered} center={mapCenter} zoom={mapZoom} userCoords={userCoords} onSelect={handleMapSelect} hoveredId={hoveredId} onBoundsChange={handleBoundsChange} />
+            <ListingsMap listings={allFiltered} center={mapCenter} zoom={mapZoom} userCoords={userCoords} searchedCoords={searchedCoords} onSelect={handleMapSelect} hoveredId={hoveredId} onBoundsChange={handleBoundsChange} />
           </div>
 
           <div className="w-[600px] shrink-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-900 flex flex-col overflow-hidden">
@@ -498,6 +555,7 @@ export default function Home() {
             center={mapCenter}
             zoom={mapZoom}
             userCoords={userCoords}
+            searchedCoords={searchedCoords}
             onSelect={handleMapSelect}
             hoveredId={hoveredId}
             onBoundsChange={handleBoundsChange}
@@ -508,19 +566,24 @@ export default function Home() {
             <div className="pointer-events-auto flex items-center gap-2 bg-white/92 dark:bg-neutral-950/92 backdrop-blur-md rounded-2xl px-3 py-2.5 shadow-lg">
               <Search size={15} className="text-neutral-400 dark:text-neutral-600 shrink-0" />
               <PlacesAutocomplete
-                externalValue={search}
-                onChange={(v) => setSearch(v)}
-                onPlaceSelect={({ lat, lng, name, city: placeCity }) => {
+                ref={mobileSearchRef}
+                onChange={(v) => { setSearch(v); setMobileHasInput(v !== '') }}
+                onPlaceSelect={({ lat, lng, city: placeCity }) => {
                   setUserCoords({ lat, lng })
                   const isCityLevel = CITIES.includes(placeCity)
                   setMapOverride({ center: [lat, lng], zoom: isCityLevel ? 12 : 15 })
-                  setSearch(name || placeCity || '')
+                  setSearch('')
+                  setMobileHasInput(true)
+                  setSearchedCoords({ lat, lng })
                 }}
                 placeholder="Search area, city or title…"
                 className="flex-1 bg-transparent text-neutral-950 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 text-sm font-medium focus:outline-none"
               />
-              {search && (
-                <button onClick={() => setSearch('')} className="text-neutral-400 dark:text-neutral-600 shrink-0">
+              {(search || mobileHasInput) && (
+                <button onClick={() => {
+                  mobileSearchRef.current?.clear(); setSearch(''); setMobileHasInput(false); setSearchedCoords(null)
+                  if (userCoords) setMapOverride({ center: [userCoords.lat, userCoords.lng], zoom: 14 })
+                }} className="text-neutral-400 dark:text-neutral-600 shrink-0">
                   <X size={14} />
                 </button>
               )}

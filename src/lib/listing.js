@@ -1,11 +1,12 @@
-export const BHK_LABELS = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
+export const BHK_LABELS = { 0: 'RK', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
 export const BHK_OPTIONS = [
-  { value: 0, label: 'Studio' },
+  { value: 0, label: 'RK' },
   { value: 1, label: '1 BHK' },
   { value: 2, label: '2 BHK' },
   { value: 3, label: '3 BHK' },
   { value: 4, label: '4+ BHK' },
 ]
+export const RENT_PRESETS = [5000, 8000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000]
 export const FURNISHING_LABELS = { furnished: 'Furnished', semi: 'Semi', unfurnished: 'Unfurnished' }
 export const AMENITIES = [
   { value: 'wifi',          label: 'Wi-Fi' },

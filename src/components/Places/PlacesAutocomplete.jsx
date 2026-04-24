@@ -1,17 +1,24 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
 // Uncontrolled input wired to Google Places Autocomplete.
-// externalValue: syncs programmatic changes (e.g. "use my location") back into the DOM input.
+// externalValue: syncs programmatic changes back into the DOM input (e.g. clear, draft restore).
 // onChange: called on every keystroke so parent can track raw text.
 // onPlaceSelect: called when user picks a suggestion, with { lat, lng, city, state, pincode, name, formattedAddress }.
-export default function PlacesAutocomplete({ externalValue, onChange, onPlaceSelect, placeholder, className }) {
+// ref: exposes { clear() } so parent can imperatively clear the input without touching externalValue.
+const PlacesAutocomplete = forwardRef(function PlacesAutocomplete(
+  { externalValue, onChange, onPlaceSelect, placeholder, className },
+  ref
+) {
   const { loaded } = useGoogleMaps()
   const inputRef = useRef(null)
   const autocompleteRef = useRef(null)
-  // Keep a ref to onPlaceSelect so the places_changed listener always calls the latest version.
   const onPlaceSelectRef = useRef(onPlaceSelect)
   useEffect(() => { onPlaceSelectRef.current = onPlaceSelect }, [onPlaceSelect])
+
+  useImperativeHandle(ref, () => ({
+    clear: () => { if (inputRef.current) inputRef.current.value = '' },
+  }))
 
   useEffect(() => {
     if (inputRef.current && externalValue !== undefined) {
@@ -64,4 +71,6 @@ export default function PlacesAutocomplete({ externalValue, onChange, onPlaceSel
       className={className}
     />
   )
-}
+})
+
+export default PlacesAutocomplete
