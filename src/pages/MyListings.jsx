@@ -4,6 +4,7 @@ import { PlusCircle, Eye, EyeOff, Trash2, Loader2, MessageSquare, Pencil } from 
 import SEOMeta from '../components/SEOMeta.jsx'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { listingUrl } from '../lib/listing'
 
 export default function MyListings() {
   const { user } = useAuth()
@@ -135,7 +136,7 @@ export default function MyListings() {
 
                 <div className="flex items-center gap-0.5 shrink-0">
                   <button
-                    onClick={() => navigate(`/listing/${listing.id}`)}
+                    onClick={() => navigate(listingUrl(listing))}
                     className="p-2 text-neutral-400 dark:text-neutral-600 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg transition-colors"
                     title="View"
                   >

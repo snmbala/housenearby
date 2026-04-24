@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
-import { BHK_LABELS, FURNISHING_LABELS, fmtDist } from '../../lib/listing'
+import { BHK_LABELS, FURNISHING_LABELS, fmtDist, listingUrl } from '../../lib/listing'
 
 export default function ListingCard({ listing, distKm, onHover }) {
   const [imgIdx, setImgIdx] = useState(0)
   const images = listing.images ?? []
-  const handleClick = () => window.open(`/listing/${listing.id}`, '_blank')
+  const handleClick = () => window.open(listingUrl(listing), '_blank')
 
   const prev = (e) => { e.stopPropagation(); setImgIdx(i => Math.max(0, i - 1)) }
   const next = (e) => { e.stopPropagation(); setImgIdx(i => Math.min(images.length - 1, i + 1)) }

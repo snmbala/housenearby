@@ -4,6 +4,7 @@ import { Send, Loader2, ArrowLeft, MessageSquare } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import SEOMeta from '../components/SEOMeta.jsx'
+import { listingUrl } from '../lib/listing'
 
 function timeAgo(ts) {
   const diff = Date.now() - new Date(ts).getTime()
@@ -60,7 +61,7 @@ export default function Messages() {
   const fetchConversations = async () => {
     const { data } = await supabase
       .from('conversations')
-      .select('*, listings(id, title, images, city, state)')
+      .select('*, listings(id, title, images, city, state, bhk, property_type, address)')
       .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
 
@@ -227,7 +228,7 @@ export default function Messages() {
               <div className="flex-1 min-w-0">
                 <p
                   className="text-sm font-semibold text-neutral-950 dark:text-white truncate cursor-pointer hover:underline"
-                  onClick={() => navigate(`/listing/${selectedConv.listing_id}`)}
+                  onClick={() => navigate(listingUrl(selectedConv.listings ?? { id: selectedConv.listing_id }))}
                 >
                   {selectedConv.listings?.title}
                 </p>

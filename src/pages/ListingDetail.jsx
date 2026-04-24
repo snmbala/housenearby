@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import ListingsMap from '../components/Map/ListingsMap'
 import AuthModal from '../components/Auth/AuthModal'
 import SEOMeta from '../components/SEOMeta.jsx'
+import { listingMetaTitle, listingMetaDesc, listingUrl } from '../lib/listing'
 
 const BHK_LABELS    = { 0: 'Studio', 1: '1 BHK', 2: '2 BHK', 3: '3 BHK', 4: '4+ BHK' }
 const FURNISH_LABELS = { furnished: 'Furnished', semi: 'Semi-furnished', unfurnished: 'Unfurnished' }
@@ -126,10 +127,11 @@ export default function ListingDetail() {
   return (
     <>
       <SEOMeta
-        title={listing.title}
-        description={`${listing.title} in ${listing.city}. ₹${Number(listing.rent_amount).toLocaleString('en-IN')}/month. ${listing.description ?? ''}`}
+        title={listingMetaTitle(listing)}
+        description={listingMetaDesc(listing)}
         image={images[0]}
         jsonLd={jsonLd}
+        canonical={`https://housenearby.in${listingUrl(listing)}`}
       />
 
       <div className="bg-white dark:bg-black min-h-screen">

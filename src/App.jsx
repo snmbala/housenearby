@@ -66,6 +66,7 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: 'post', element: <div className="h-full overflow-y-auto"><PostListing /></div> },
       { path: 'listing/:id', element: <div className="h-full overflow-y-auto"><ListingDetail /></div> },
+      { path: 'rent/:slug/:id', element: <div className="h-full overflow-y-auto"><ListingDetail /></div> },
       { path: 'my-listings', element: <div className="h-full overflow-y-auto"><MyListings /></div> },
       { path: 'edit/:id', element: <div className="h-full overflow-y-auto"><EditListing /></div> },
       { path: 'profile', element: <div className="h-full overflow-y-auto"><Profile /></div> },

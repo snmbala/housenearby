@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import AuthModal from '../components/Auth/AuthModal.jsx'
 import { CITY_ALIASES, getCityCenter } from '../lib/cities'
-import { BHK_LABELS, BHK_OPTIONS, AMENITIES, RENT_PRESETS } from '../lib/listing'
+import { BHK_LABELS, BHK_OPTIONS, AMENITIES, RENT_PRESETS, listingUrl } from '../lib/listing'
 
 const BHK_APPLIES_TO = new Set(['All', 'Apartment', 'House', 'Villa'])
 
@@ -321,7 +321,7 @@ export default function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
-  const openListing = (listing) => window.open(`/listing/${listing.id}`, '_blank')
+  const openListing = (listing) => window.open(listingUrl(listing), '_blank')
 
   // Mobile carousel state
   const [activeCardIdx, setActiveCardIdx] = useState(0)
