@@ -49,6 +49,13 @@ export default function MyListings() {
 
   const deleteListing = async (id) => {
     if (!confirm('Delete this listing permanently?')) return
+    const listing = listings.find(l => l.id === id)
+    const imagePaths = (listing?.images ?? [])
+      .map(url => url.split('/listing-images/')[1])
+      .filter(Boolean)
+    if (imagePaths.length > 0) {
+      await supabase.storage.from('listing-images').remove(imagePaths)
+    }
     await supabase.from('listings').delete().eq('id', id)
     setListings(prev => prev.filter(l => l.id !== id))
   }

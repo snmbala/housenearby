@@ -77,6 +77,7 @@ export default function EditListing() {
   const [phone, setPhone]           = useState('')
   const [phoneError, setPhoneError] = useState('')
   const [existingImages, setExistingImages] = useState([]) // URLs already in storage
+  const [removedImages, setRemovedImages]   = useState([]) // URLs removed during edit
   const [newImages, setNewImages]   = useState([])         // { file, preview }
   const [showOptional, setShowOptional] = useState(false)
   const [description, setDescription]   = useState('')
@@ -201,7 +202,11 @@ export default function EditListing() {
     setNewImages(prev => [...prev, ...valid.map(f => ({ file: f, preview: URL.createObjectURL(f) }))])
   }
 
-  const removeExisting = (i) => setExistingImages(prev => prev.filter((_, j) => j !== i))
+  const removeExisting = (i) => {
+    const url = existingImages[i]
+    setRemovedImages(prev => [...prev, url])
+    setExistingImages(prev => prev.filter((_, j) => j !== i))
+  }
   const removeNew = (i) => {
     setNewImages(prev => { URL.revokeObjectURL(prev[i].preview); return prev.filter((_, j) => j !== i) })
   }
@@ -232,6 +237,13 @@ export default function EditListing() {
       }
       const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path)
       uploadedUrls.push(publicUrl)
+    }
+
+    const removedPaths = removedImages
+      .map(url => url.split('/listing-images/')[1])
+      .filter(Boolean)
+    if (removedPaths.length > 0) {
+      await supabase.storage.from('listing-images').remove(removedPaths)
     }
 
     const { error: updateError } = await supabase.from('listings').update({
